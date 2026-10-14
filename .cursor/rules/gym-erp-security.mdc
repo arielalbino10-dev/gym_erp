@@ -1,0 +1,37 @@
+---
+description: Seguridad y protección de datos de gym_erp.
+alwaysApply: true
+---
+
+# Gym ERP — Security
+
+## Autenticación y autorización
+- Implementar autenticación segura.
+- Aplicar control de acceso por roles.
+- Validar permisos en el backend.
+- Nunca confiar en permisos enviados por el frontend.
+
+## Multiempresa
+- Cada operación debe respetar el tenant autorizado.
+- Impedir acceso cruzado entre gimnasios.
+- Validar permisos por sucursal cuando corresponda.
+- Probar el aislamiento entre empresas.
+
+## Protección de datos
+- Nunca exponer contraseñas, tokens o secretos.
+- Validar y sanitizar entradas.
+- Proteger información personal de los miembros.
+- Aplicar privilegios mínimos.
+
+## Finanzas
+- Evitar pagos duplicados mediante idempotencia.
+- Registrar movimientos financieros auditables.
+- Utilizar operaciones atómicas y transacciones
+  cuando corresponda.
+- No eliminar historiales financieros.
+
+## Operaciones
+- No ejecutar operaciones destructivas sin aprobación.
+- No utilizar datos de producción en pruebas.
+- Registrar acciones administrativas sensibles.
+- Proteger credenciales y conexiones de MongoDB.

@@ -1,0 +1,28 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: gym_erp_mongodb
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:27017:27017"
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Configura MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Configura MONGO_ROOT_PASSWORD}
+
+    command:
+      - mongod
+      - --replSet
+      - rs0
+      - --bind_ip_all
+      - --auth
+      - --keyFile
+      - /etc/mongo-keyfile
+
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongodb/mongo.keyfile:/etc/mongo-keyfile:ro
+
+volumes:
+  mongodb_data:

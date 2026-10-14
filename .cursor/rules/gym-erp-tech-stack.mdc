@@ -1,0 +1,44 @@
+---
+description: Stack tecnológico oficial de gym_erp.
+alwaysApply: true
+---
+
+# Gym ERP — Technology Stack
+
+## Backend
+- Python + FastAPI.
+- Pydantic para validaciones.
+- MongoDB con PyMongo Async.
+- API REST versionada en /api/v1.
+- Backend modular compartido por web y móvil.
+
+## ERP Web
+- React + Vite.
+- JavaScript con archivos .jsx.
+- Interfaz administrativa responsive.
+- Aplicación ubicada en apps/web/.
+
+## Aplicación móvil
+- React Native + Expo.
+- JavaScript con archivos .jsx.
+- Soporte Android e iOS.
+- Aplicación ubicada en apps/mobile/.
+- Desarrollo posterior al MVP web.
+
+## Arquitectura
+- Monorepositorio.
+- FastAPI como backend central.
+- MongoDB como base de datos principal.
+- Los clientes nunca acceden directamente
+  a MongoDB.
+- Contratos API compatibles con web y móvil.
+- Reutilizar lógica compartida cuando aporte valor.
+- Mantener interfaces específicas por plataforma.
+
+## Restricciones
+- No utilizar TypeScript ni archivos .tsx.
+- No sustituir el stack sin autorización.
+- No duplicar reglas de negocio en frontends.
+- No introducir microservicios prematuramente.
+- No desarrollar funcionalidades móviles
+  sin priorización aprobada.

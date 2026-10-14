@@ -1,0 +1,34 @@
+---
+description: Arquitectura empresarial de gym_erp.
+alwaysApply: true
+---
+
+# Gym ERP — Architecture
+
+## Arquitectura principal
+- Monorepositorio.
+- Monolito modular en FastAPI.
+- Clean Architecture pragmática.
+- Separación entre dominio, aplicación,
+  infraestructura y presentación.
+- Principios SOLID, DRY y KISS cuando aporten valor.
+
+## Organización
+- Cada módulo debe tener responsabilidades claras.
+- Evitar dependencias circulares.
+- Centralizar configuraciones y servicios compartidos.
+- Versionar las APIs.
+- Documentar decisiones importantes mediante ADR.
+
+## Escalabilidad
+- Arquitectura multiempresa (SaaS).
+- Soporte para múltiples sucursales.
+- Aislamiento de información por tenant.
+- Preparar crecimiento sin introducir microservicios
+  prematuramente.
+
+## Desarrollo
+- Analizar antes de implementar.
+- Priorizar código mantenible y comprobable.
+- No modificar la arquitectura sin justificación.
+- Planificar cambios estructurales antes de programar.

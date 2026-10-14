@@ -1,0 +1,33 @@
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Credenciales de MongoDB
+**/mongodb/*.key
+**/mongodb/*.keyfile
+
+# Archivos locales de macOS
+.DS_Store
+
+# Python / uv (fases posteriores)
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+dist/
+*.egg-info/
+
+# Node (fases posteriores)
+node_modules/
+dist/
+build/
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
