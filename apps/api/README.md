@@ -1,6 +1,8 @@
 # Gym ERP API
 
-FastAPI monolith (`gym_erp_api`). H0-B: health checks only.
+FastAPI monolith (`gym_erp_api`). H0-B: health checks. H1-B: núcleo multi-tenant
+(`TenantContext`, `MongoDatabases`, `TenantScopedRepository`) **sin** endpoints de negocio
+ni autenticación (ADR-0003 Proposed).
 
 ## Setup
 
@@ -11,7 +13,8 @@ uv sync --all-groups
 cp ../../.env.example .env   # editar MONGODB_URI con usuario de aplicación (no root)
 ```
 
-Variables relevantes: ver `.env.example` en la raíz del monorepo.
+Variables relevantes: `.env.example` en la raíz (`MONGODB_URI`, `MONGODB_PLATFORM_DB`,
+`MONGODB_OPERATIONAL_DB`).
 
 ## Run (development)
 
@@ -25,6 +28,25 @@ uv run uvicorn gym_erp_api.main:app --reload --host 127.0.0.1 --port 8000
 |--------|------|-------------|
 | GET | `/api/v1/health/live` | Proceso vivo; no usa MongoDB |
 | GET | `/api/v1/health/ready` | 200 si Mongo responde; 503 si no hay URI o falla ping |
+
+No hay rutas públicas con selector de tenant. Un `TenantContext` válido en tests **no**
+equivale a identidad autenticada.
+
+## Núcleo multi-tenant (H1-B)
+
+- `shared_kernel/tenant_context.py` — contexto inmutable (UUID validados).
+- `infrastructure/mongo/mongo_databases.py` — `gym_platform` / `gym_operational`.
+- `infrastructure/mongo/filter_policy.py` — filtros y escrituras seguras.
+- `infrastructure/mongo/scoped_repository.py` — acceso operational scoped.
+
+Documentación: [docs/architecture/README.md](../../docs/architecture/README.md).
+
+### Endurecimiento H1-B.1
+
+- Mutaciones (`update_*`, `delete_*`) exigen **filtro de negocio** además del `tenant_id`.
+- Agregaciones: lista blanca de etapas y expresiones; sin `allowDiskUse`.
+- kwargs PyMongo: lista blanca por método; prohibidos `upsert`, `array_filters`, etc.
+- Settings: nombres de BD platform/operational no vacíos y distintos.
 
 ## Calidad y pruebas
 

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from gym_erp_api.core.config import Settings, get_settings
 from gym_erp_api.infrastructure.mongo.database import create_mongo_client
+from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
 from gym_erp_api.presentation.api_v1.router import api_v1_router
 
 
@@ -13,6 +14,7 @@ async def lifespan(app: FastAPI):
     settings: Settings = app.state.settings
     client = create_mongo_client(settings)
     app.state.mongo_client = client
+    app.state.mongo_databases = MongoDatabases(client, settings) if client is not None else None
     try:
         yield
     finally:

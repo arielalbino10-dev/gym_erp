@@ -1,7 +1,7 @@
 # ADR-0002: Aislamiento multiempresa en MongoDB
 
 - **Estado:** Accepted
-- **Fecha:** 2026-10-13 (documentación H0-A)
+- **Fecha:** 2026-10-13 (documentación H0-A); anexo ADR-0008: 2026-10-14 (H1-A.2)
 - **Decisores:** Propietario del producto
 
 ## Contexto
@@ -51,13 +51,22 @@ de autenticación (ver ADR-0003, Proposed).
 |--------|------------|
 | Omisión de filtro `tenant_id` | Repositorio único con scope; tests en CI; revisión de código |
 | Agregaciones/`$lookup` sin filtro inicial | Política de código + tests |
-| Respuesta que revela existencia de recursos ajenos | Política 404 uniforme (detalle en implementación; alinear con ADR-0003) |
+| Respuesta que revela existencia de recursos ajenos | **404** en recurso por id; listados vacíos o solo datos autorizados (H1-A.2, D5) |
 
 ## Controles verificables
 
 - Suite `tenant_isolation` en CI verde antes de release piloto.
 - Catálogo de índices documentado (fase `database/`) con prefijo `tenant_id`.
 - Ningún router accede a `AsyncMongoClient` sin pasar por repositorio scoped.
+
+## Relación con ADR-0008 (Accepted)
+
+Los datos **operativos** compartidos entre tenants viven en la base lógica
+**operational** (`gym_operational` en desarrollo). Metadatos de plataforma (tenants,
+membresías usuario–tenant, suscripción SaaS) viven en la base **platform**. Las
+invariantes de este ADR (`tenant_id`, repositorios scoped, pruebas de aislamiento)
+aplican a la base operational; ver
+[ADR-0008](0008-dos-bases-mongodb-platform-operational.md).
 
 ## Condiciones de revisión
 
