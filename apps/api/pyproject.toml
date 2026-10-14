@@ -32,6 +32,7 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 markers = [
     "integration: pruebas contra MongoDB real; requieren GYM_ERP_RUN_INTEGRATION=1",
+    "tenant_isolation: aislamiento multi-tenant contra MongoDB de prueba (H1-C)",
 ]
 
 [tool.ruff]

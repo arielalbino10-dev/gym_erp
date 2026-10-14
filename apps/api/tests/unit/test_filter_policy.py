@@ -76,6 +76,21 @@ def test_branch_scoped_update_rejects_branch_id_change():
         sanitize_update({"$set": {"branch_id": BRANCH_Y_ID}}, branch_scoped=True)
 
 
+def test_tenant_scoped_update_rejects_branch_id_in_set():
+    with pytest.raises(TenantScopeError):
+        sanitize_update({"$set": {"branch_id": BRANCH_Y_ID}}, branch_scoped=False)
+
+
+def test_tenant_scoped_update_rejects_branch_id_unset():
+    with pytest.raises(TenantScopeError):
+        sanitize_update({"$unset": {"branch_id": ""}}, branch_scoped=False)
+
+
+def test_update_rejects_dotted_branch_id_path():
+    with pytest.raises(TenantScopeError):
+        sanitize_update({"$set": {"profile.branch_id": BRANCH_Y_ID}})
+
+
 def test_sanitize_update_rejects_replacement_document():
     with pytest.raises(TenantScopeError):
         sanitize_update({"status": "active"})

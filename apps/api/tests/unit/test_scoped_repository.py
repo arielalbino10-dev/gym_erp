@@ -6,6 +6,7 @@ from gym_erp_api.infrastructure.mongo.scoped_repository import TenantScopedRepos
 from gym_erp_api.shared_kernel.exceptions import ForbiddenMongoOperatorError, TenantScopeError
 from tests.support.tenant_fixtures import (
     BRANCH_X_ID,
+    BRANCH_Y_ID,
     TENANT_A_ID,
     TENANT_B_ID,
     make_context_tenant_a,
@@ -79,6 +80,30 @@ async def test_update_rejects_malicious_tenant_in_set(mock_collection):
     repo = TenantScopedRepository(mock_collection, ctx)
     with pytest.raises(TenantScopeError):
         await repo.update_one({}, {"$set": {"tenant_id": TENANT_B_ID}})
+
+
+@pytest.mark.asyncio
+async def test_update_rejects_branch_id_change_tenant_scoped(mock_collection):
+    ctx = make_context_tenant_a()
+    repo = TenantScopedRepository(mock_collection, ctx)
+    with pytest.raises(TenantScopeError):
+        await repo.update_one(
+            {"status": "active"},
+            {"$set": {"branch_id": BRANCH_Y_ID}},
+        )
+    mock_collection.update_one.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_rejects_branch_id_change_branch_scoped(mock_collection):
+    ctx = make_context_tenant_a(allowed_branch_ids=frozenset({BRANCH_X_ID}))
+    repo = TenantScopedRepository(mock_collection, ctx, branch_scoped=True)
+    with pytest.raises(TenantScopeError):
+        await repo.update_one(
+            {"status": "active"},
+            {"$set": {"branch_id": BRANCH_Y_ID}},
+        )
+    mock_collection.update_one.assert_not_called()
 
 
 @pytest.mark.asyncio

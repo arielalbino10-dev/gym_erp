@@ -6,8 +6,8 @@ en H1-A.2.
 
 ## Entorno de prueba
 
-- Bases dedicadas con sufijo **`_test`** (p. ej. `gym_operational_integration_test`), nunca
-  `gym_platform` ni `gym_operational` de desarrollo (guardia en `apps/api/tests/`).
+- Allowlist exacta H1-C: **`gym_platform_test`** y **`gym_operational_test`**, nunca
+  `gym_platform` ni `gym_operational` (guardia en `apps/api/tests/support/`).
 - Integración MongoDB solo con `GYM_ERP_RUN_INTEGRATION=1` y URI validada (ver
   `docs/development/ci.md`).
 - Datos **ficticios**: `tenant_a`, `tenant_b` con UUIDs fijos en fixtures; usuarios y
@@ -46,7 +46,8 @@ en H1-A.2.
 ## Ubicación prevista en repo
 
 ```text
-apps/api/tests/tenant_isolation/
+apps/api/tests/tenant_isolation/          # unitarias (mocks / filter policy)
+apps/api/tests/integration/tenant_isolation/  # integración MongoDB (H1-C)
 ```
 
 ## Referencias

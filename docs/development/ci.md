@@ -32,7 +32,9 @@ Requieren **autorización explícita** y URI dedicada:
 
 ```bash
 export GYM_ERP_RUN_INTEGRATION=1
-export MONGODB_URI_TEST='mongodb://USER:PASS@127.0.0.1:27017/NOMBRE_test?replicaSet=rs0&authSource=...'
+export MONGODB_URI_TEST='mongodb://gym_erp_integration:...@127.0.0.1:27017/gym_operational_test?replicaSet=rs0&authSource=admin'
+export MONGODB_PLATFORM_DB=gym_platform_test
+export MONGODB_OPERATIONAL_DB=gym_operational_test
 cd apps/api
 uv run pytest -m integration -v
 ```
@@ -40,7 +42,9 @@ uv run pytest -m integration -v
 Reglas de la URI:
 
 - Host: `127.0.0.1` o `localhost` únicamente.
-- Base de datos: debe terminar en `_test`.
-- **Prohibido:** `gym_platform`, `gym_operational`.
+- Allowlist: `gym_platform_test`, `gym_operational_test` (ver
+  [integration-mongodb.md](integration-mongodb.md)).
+- Usuario URI: `gym_erp_integration` únicamente.
+- **Prohibido:** `gym_platform`, `gym_operational`, `gym_erp_app`, `gym_erp_admin`.
 
 No imprimir la URI en logs ni commitear credenciales.

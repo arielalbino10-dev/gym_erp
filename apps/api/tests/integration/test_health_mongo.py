@@ -8,9 +8,8 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def app_integration(integration_mongodb_uri):
-    settings = Settings(app_env="test", mongodb_uri=integration_mongodb_uri)
-    return create_app(settings=settings)
+def app_integration(integration_settings: Settings):
+    return create_app(settings=integration_settings)
 
 
 @pytest.mark.asyncio

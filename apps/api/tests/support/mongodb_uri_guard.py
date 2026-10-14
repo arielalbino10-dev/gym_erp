@@ -16,23 +16,7 @@ def database_name_from_mongodb_uri(uri: str) -> str:
 
 
 def validate_integration_mongodb_uri(uri: str) -> None:
-    parsed = urlparse(uri)
-    if parsed.scheme != "mongodb":
-        raise ValueError(
-            "La URI de integración debe usar el esquema 'mongodb' (no mongodb+srv ni otros)."
-        )
-    host = (parsed.hostname or "").lower()
-    if not host or host not in ALLOWED_HOSTS:
-        raise ValueError(
-            "La URI de integración debe apuntar a localhost o 127.0.0.1 (no host remoto)."
-        )
-    db_name = database_name_from_mongodb_uri(uri)
-    if db_name in FORBIDDEN_DB_NAMES:
-        raise ValueError(
-            f"Base de datos prohibida para pruebas: {db_name!r}. "
-            "Use una BD dedicada terminada en _test."
-        )
-    if not db_name.endswith("_test"):
-        raise ValueError(
-            f"El nombre de base de datos debe terminar en '_test' (recibido: {db_name!r})."
-        )
+    """Validación completa de URI (usuario, query, allowlist)."""
+    from tests.support.integration_environment import validate_integration_mongodb_uri as _full
+
+    _full(uri)

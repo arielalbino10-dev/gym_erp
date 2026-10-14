@@ -64,10 +64,13 @@ Formatear código: `uv run ruff format .`
 
 ```bash
 export GYM_ERP_RUN_INTEGRATION=1
-export MONGODB_URI_TEST='...'   # BD local *_test; ver docs/development/ci.md
+export MONGODB_URI_TEST='...'   # gym_operational_test; ver docs/development/integration-mongodb.md
+export MONGODB_PLATFORM_DB=gym_platform_test
+export MONGODB_OPERATIONAL_DB=gym_operational_test
 uv run pytest -m integration -v
+uv run pytest -m "integration and tenant_isolation" -v   # H1-C.3
 ```
 
-Nunca usar bases `gym_platform` ni `gym_operational` en pruebas.
+Nunca usar bases `gym_platform` / `gym_operational` ni usuarios `gym_erp_app` / `gym_erp_admin`.
 
 CI del monorepo: [docs/development/ci.md](../../docs/development/ci.md).

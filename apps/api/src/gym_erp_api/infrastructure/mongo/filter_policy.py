@@ -95,6 +95,12 @@ def require_business_filter(sanitized_user_filter: dict[str, Any]) -> None:
         raise TenantScopeError("Se requiere al menos un criterio de negocio además del tenant.")
 
 
+def _field_path_touches_protected(field_path: str, protected: frozenset[str]) -> bool:
+    if field_path in protected:
+        return True
+    return any(segment in protected for segment in field_path.split("."))
+
+
 def _reject_protected_keys(
     document: dict[str, Any],
     *,
@@ -103,8 +109,8 @@ def _reject_protected_keys(
 ) -> None:
     protected = PROTECTED_FIELD_KEYS | extra_protected
     for key in document:
-        if key in protected:
-            raise TenantScopeError(f"No se permite {key!r} en {context}.")
+        if _field_path_touches_protected(key, protected):
+            raise TenantScopeError(f"No se permite modificar {key!r} en {context}.")
 
 
 def _validate_field_operator_value(op: str, value: Any) -> None:
@@ -242,7 +248,6 @@ def _sanitize_update_document(
     update: dict[str, Any],
     *,
     path: str,
-    branch_scoped: bool,
 ) -> dict[str, Any]:
     if not isinstance(update, dict):
         raise TenantScopeError("La actualización debe ser un documento con operadores.")
@@ -258,26 +263,31 @@ def _sanitize_update_document(
         if not isinstance(payload, dict):
             raise TenantScopeError(f"El payload de {op} debe ser un documento.")
         payload_copy = _deepcopy(payload)
-        extra = BRANCH_PROTECTED_KEYS if branch_scoped else frozenset()
         _reject_protected_keys(
             payload_copy,
             context=f"actualización {op}",
-            extra_protected=extra,
+            extra_protected=BRANCH_PROTECTED_KEYS,
         )
         if op == "$unset":
+            protected = PROTECTED_FIELD_KEYS | BRANCH_PROTECTED_KEYS
             for key in payload_copy:
-                if key in PROTECTED_FIELD_KEYS | extra:
+                if _field_path_touches_protected(key, protected):
                     raise TenantScopeError(f"No se puede $unset {key!r}.")
         sanitized[op] = payload_copy
     return sanitized
 
 
 def sanitize_update(update: dict[str, Any], *, branch_scoped: bool = False) -> dict[str, Any]:
-    """Valida operadores de actualización (sin pipeline ni replace)."""
+    """Valida operadores de actualización (sin pipeline ni replace).
+
+    ``branch_scoped`` se conserva en la firma por compatibilidad con el repositorio;
+    ``tenant_id`` y ``branch_id`` son inmutables en updates genéricos en ambos modos.
+    """
+    del branch_scoped
     if isinstance(update, list):
         raise ForbiddenMongoOperatorError("Actualizaciones por pipeline no permitidas en H1-B.")
     copied = _deepcopy(update)
-    return _sanitize_update_document(copied, path="update", branch_scoped=branch_scoped)
+    return _sanitize_update_document(copied, path="update")
 
 
 def prepare_insert_document(
