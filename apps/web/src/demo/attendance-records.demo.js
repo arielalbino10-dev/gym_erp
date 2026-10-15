@@ -3,7 +3,8 @@
  */
 
 import { DEMO_ATTENDANCE_DAILY_30 } from "./attendance.demo.js";
-import { DEMO_BRANCHES, DEMO_MEMBERS, DEMO_REFERENCE_DATE, MEMBER_STATUS } from "./members.demo.js";
+import { branchFilterOptionsForLists } from "./branches.demo.js";
+import { DEMO_MEMBERS, DEMO_REFERENCE_DATE, MEMBER_STATUS } from "./members.demo.js";
 
 export { DEMO_REFERENCE_DATE };
 
@@ -15,10 +16,7 @@ export const ATTENDANCE_PERIOD_PRESETS = [
   { value: "30", label: "Últimos 30 días" },
 ];
 
-export const BRANCH_FILTER_OPTIONS = [
-  { value: "", label: "Todas las sucursales demo" },
-  ...DEMO_BRANCHES.map((name) => ({ value: name, label: name })),
-];
+export const BRANCH_FILTER_OPTIONS = branchFilterOptionsForLists();
 
 const ENTRY_HOURS = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20];
 
@@ -47,7 +45,8 @@ function buildRecords() {
         fullName: member.fullName,
         dateIso,
         timeLocal: demoTimeForIndex(seq),
-        branchName: DEMO_BRANCHES[(dayIndex + j) % DEMO_BRANCHES.length],
+        branchId: member.branchId,
+        branchName: member.branchName,
         accessMethodLabel: "Registro manual (demo)",
         isDemo: true,
       });

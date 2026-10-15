@@ -28,9 +28,15 @@ function SortButton({ label, field, activeField, direction, onSort }) {
 
 export default function AssignedMembershipsTable({ rows, sortField, sortDir, onSort, onViewDetail }) {
   return (
-    <div className="demo-data-table-wrap">
-      <table className="demo-data-table">
-        <caption className="visually-hidden">Membresías asignadas a socios ficticios</caption>
+    <div
+      className="demo-data-table-wrap responsive-table-region"
+      role="region"
+      aria-label="Tabla de membresías asignadas demo"
+    >
+      <table className="demo-data-table responsive-data-table">
+        <caption className="visually-hidden">
+          Membresías asignadas a socios ficticios. En móvil, filas en formato tarjeta con etiquetas.
+        </caption>
         <thead>
           <tr>
             <th scope="col">Socio</th>

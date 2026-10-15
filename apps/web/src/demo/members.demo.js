@@ -1,5 +1,7 @@
 /** Socios ficticios — deterministas, no operativos. */
 
+import { BRANCH_STATUS, DEMO_BRANCH_CATALOG, getDemoBranchById } from "./branches.demo.js";
+
 /** Fecha de referencia compartida con dashboard, membresías y asistencias. */
 export const DEMO_REFERENCE_DATE = "2026-10-15";
 
@@ -15,7 +17,10 @@ export const MEMBERSHIP_TYPES = {
   ANNUAL: "anual",
 };
 
-export const DEMO_BRANCHES = ["Centro Demo", "Norte Demo", "Sur Demo"];
+/** @deprecated Use DEMO_BRANCH_CATALOG — nombres de sucursales activas demo. */
+export const DEMO_BRANCHES = DEMO_BRANCH_CATALOG.filter((b) => b.status === BRANCH_STATUS.ACTIVE).map((b) => b.name);
+
+const ACTIVE_BRANCHES = DEMO_BRANCH_CATALOG.filter((b) => b.status === BRANCH_STATUS.ACTIVE);
 
 export const MEMBER_STATUS_FILTER_OPTIONS = [
   { value: "", label: "Todos los estados" },
@@ -84,6 +89,7 @@ export const DEMO_MEMBERS = Array.from({ length: 24 }, (_, index) => {
   const membershipType = MEMBERSHIP_CYCLE[index % MEMBERSHIP_CYCLE.length];
   const status = STATUS_CYCLE[index % STATUS_CYCLE.length];
   const { enrolledOn, expiresOn } = datesForMember(index, status);
+  const branch = ACTIVE_BRANCHES[index % ACTIVE_BRANCHES.length];
   return {
     memberId: memberUuid(i),
     memberCode: padMemberCode(i),
@@ -93,7 +99,8 @@ export const DEMO_MEMBERS = Array.from({ length: 24 }, (_, index) => {
     status,
     enrolledOn,
     expiresOn,
-    branchName: DEMO_BRANCHES[index % DEMO_BRANCHES.length],
+    branchId: branch.branchId,
+    branchName: branch.name,
     isDemo: true,
   };
 });
@@ -107,6 +114,7 @@ function addMonthsToIso(isoDate, months) {
 
 export function createSessionDemoMember(fields, sessionIndex) {
   const membershipType = fields.membershipType || MEMBERSHIP_TYPES.MONTHLY;
+  const branch = getDemoBranchById(fields.branchId) ?? ACTIVE_BRANCHES[0];
   const enrolledOn = "2026-10-15";
   const months =
     membershipType === MEMBERSHIP_TYPES.ANNUAL
@@ -123,7 +131,8 @@ export function createSessionDemoMember(fields, sessionIndex) {
     status: MEMBER_STATUS.ACTIVE,
     enrolledOn,
     expiresOn: addMonthsToIso(enrolledOn, months),
-    branchName: fields.branchName || DEMO_BRANCHES[0],
+    branchId: branch.branchId,
+    branchName: branch.name,
     isDemo: true,
     sessionOnly: true,
   };

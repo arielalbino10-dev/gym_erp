@@ -32,8 +32,9 @@ export const DEMO_RECENT_ACTIVITY = [
     id: "act-1",
     time: "10:42",
     dateIso: "2026-10-15",
-    text: "Check-in demo — Socio ficticio 014 (plan mensual)",
+    text: "Check-in demo — Socio ficticio 14 (plan mensual)",
     kind: "attendance",
+    branchId: "demo-branch-centro",
   },
   {
     id: "act-2",
@@ -41,6 +42,7 @@ export const DEMO_RECENT_ACTIVITY = [
     dateIso: "2026-10-15",
     text: "Renovación demo — membresía trimestral",
     kind: "membership",
+    branchId: "demo-branch-norte",
   },
   {
     id: "act-3",
@@ -48,6 +50,7 @@ export const DEMO_RECENT_ACTIVITY = [
     dateIso: "2026-10-14",
     text: "Alta demo de socio — recepción centro",
     kind: "member",
+    branchId: "demo-branch-centro",
   },
   {
     id: "act-4",
@@ -55,6 +58,7 @@ export const DEMO_RECENT_ACTIVITY = [
     dateIso: "2026-10-14",
     text: "Asistencia grupal demo — clase funcional",
     kind: "attendance",
+    branchId: "demo-branch-sur",
   },
   {
     id: "act-5",
@@ -62,6 +66,7 @@ export const DEMO_RECENT_ACTIVITY = [
     dateIso: "2026-10-12",
     text: "Membresía demo vencida (ejemplo ilustrativo)",
     kind: "membership",
+    branchId: "demo-branch-norte",
   },
 ];
 

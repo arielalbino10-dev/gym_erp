@@ -251,47 +251,7 @@
   border-radius: var(--radius-sm);
 }
 
-@media (max-width: 767px) {
-  .members-table__sort {
-    display: none;
-  }
-
-  .members-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
-
-  .members-table tr {
-    display: block;
-    margin-bottom: var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-3);
-    background: var(--color-bg-surface);
-  }
-
-  .members-table td {
-    display: grid;
-    grid-template-columns: 6.5rem 1fr;
-    gap: var(--space-2);
-    border: none;
-    padding: var(--space-2) 0;
-  }
-
-  .members-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--color-text-secondary);
-  }
-
-  .members-table__hide-sm,
-  .members-table__hide-md {
-    display: grid;
-  }
-}
+/* Layout móvil de tablas: ver responsive-tables.css */
 
 @media (min-width: 768px) {
   .members-table__hide-sm {

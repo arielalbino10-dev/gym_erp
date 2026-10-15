@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import DemoBranchScopeBanner from "../components/layout/DemoBranchScopeBanner.jsx";
+import { useDemoUiPreferences } from "../app/providers/DemoUiPreferencesProvider.jsx";
 import HealthIndicator from "../components/layout/HealthIndicator.jsx";
 import BarChart from "../components/ui/BarChart.jsx";
 import Button from "../components/ui/Button.jsx";
@@ -7,6 +9,7 @@ import Card from "../components/ui/Card.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import MetricCard from "../components/ui/MetricCard.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
+import { itemMatchesDemoBranch } from "../demo/branches.demo.js";
 import { ATTENDANCE_PERIOD_OPTIONS, getAttendanceSeries } from "../demo/attendance.demo.js";
 import {
   DEMO_DASHBOARD_LOAD_MS,
@@ -15,10 +18,13 @@ import {
   DEMO_QUICK_ACTIONS,
   DEMO_RECENT_ACTIVITY,
 } from "../demo/dashboard.demo.js";
+import { computeDashboardMetricsForBranch } from "../utils/dashboardBranchMetrics.js";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [periodDays, setPeriodDays] = useState(7);
+  const { selectedBranchId, isBranchFilterActive } = useDemoUiPreferences();
+
   useEffect(() => {
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -34,6 +40,55 @@ export default function DashboardPage() {
 
   const series = useMemo(() => getAttendanceSeries(periodDays), [periodDays]);
 
+  const branchMetrics = useMemo(
+    () => (isBranchFilterActive ? computeDashboardMetricsForBranch(selectedBranchId) : null),
+    [isBranchFilterActive, selectedBranchId],
+  );
+
+  const kpiRows = useMemo(() => {
+    if (!branchMetrics) {
+      return DEMO_KPI_METRICS;
+    }
+    return [
+      {
+        id: "active-members",
+        title: "Socios activos",
+        value: String(branchMetrics.activeMembers),
+        footnote: "Calculado desde socios demo filtrados",
+      },
+      {
+        id: "active-memberships",
+        title: "Membresías vigentes",
+        value: String(branchMetrics.vigentes),
+        footnote: "Asignaciones vigentes o por vencer (demo)",
+      },
+      {
+        id: "attendance-today",
+        title: "Asistencias de hoy",
+        value: String(branchMetrics.attendanceToday),
+        footnote: "Registros demo del 2026-10-15 en la sucursal",
+      },
+      {
+        id: "revenue-month",
+        title: "Ingresos del mes",
+        value: "$12,450",
+        footnote: "Ilustrativo · no desglosado por sucursal",
+      },
+    ];
+  }, [branchMetrics]);
+
+  const activityItems = useMemo(
+    () => DEMO_RECENT_ACTIVITY.filter((item) => itemMatchesDemoBranch(item, selectedBranchId)),
+    [selectedBranchId],
+  );
+
+  const membershipSummary = useMemo(() => {
+    if (!branchMetrics) {
+      return DEMO_MEMBERSHIP_SUMMARY;
+    }
+    return branchMetrics.membershipByPlan;
+  }, [branchMetrics]);
+
   return (
     <div className="dashboard">
       <PageHeader
@@ -41,8 +96,10 @@ export default function DashboardPage() {
         description="Indicadores y gráficos con datos ficticios. No representan socios, pagos ni asistencias reales del gimnasio."
       />
 
+      <DemoBranchScopeBanner />
+
       <div className="dashboard__kpi-grid">
-        {DEMO_KPI_METRICS.map((metric) => (
+        {kpiRows.map((metric) => (
           <MetricCard
             key={metric.id}
             title={metric.title}
@@ -55,6 +112,11 @@ export default function DashboardPage() {
 
       <div className="dashboard__grid-two">
         <Card title="Asistencias por día" className="dashboard__chart-card">
+          {isBranchFilterActive ? (
+            <p className="dashboard__chart-scope-note" role="note">
+              Gráfico agregado del escenario demo · no filtrado por sucursal (ilustrativo).
+            </p>
+          ) : null}
           <div className="dashboard__period-toolbar" role="group" aria-label="Periodo del gráfico">
             {ATTENDANCE_PERIOD_OPTIONS.map((opt) => (
               <Button
@@ -81,11 +143,13 @@ export default function DashboardPage() {
                 <li key={i} className="activity-list__skeleton" />
               ))}
             </ul>
-          ) : DEMO_RECENT_ACTIVITY.length === 0 ? (
-            <EmptyState title="Sin actividad demo">No hay eventos ficticios para mostrar.</EmptyState>
+          ) : activityItems.length === 0 ? (
+            <EmptyState title="Sin actividad demo en esta sucursal">
+              Cambie el selector global o muestre todas las sucursales.
+            </EmptyState>
           ) : (
             <ul className="activity-list">
-              {DEMO_RECENT_ACTIVITY.map((item) => (
+              {activityItems.map((item) => (
                 <li key={item.id} className="activity-list__item">
                   <time className="activity-list__time" dateTime={item.dateIso}>
                     {item.time}
@@ -104,7 +168,7 @@ export default function DashboardPage() {
             <div className="membership-summary membership-summary--loading" aria-busy="true" />
           ) : (
             <ul className="membership-summary">
-              {DEMO_MEMBERSHIP_SUMMARY.map((row) => (
+              {membershipSummary.map((row) => (
                 <li key={row.id} className="membership-summary__row">
                   <span className="membership-summary__plan">{row.plan}</span>
                   <span className="membership-summary__stat">

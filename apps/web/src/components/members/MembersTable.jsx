@@ -27,10 +27,11 @@ function SortButton({ label, field, activeField, direction, onSort }) {
 
 export default function MembersTable({ rows, sortField, sortDir, onSort, onViewDetail }) {
   return (
-    <div className="members-table-wrap">
-      <table className="members-table">
+    <div className="members-table-wrap responsive-table-region" role="region" aria-label="Tabla de socios demo">
+      <table className="members-table responsive-data-table">
         <caption className="visually-hidden">
-          Listado de socios de demostración con código, contacto, plan y estado
+          Listado de socios de demostración con código, contacto, plan y estado. En pantallas
+          pequeñas cada fila se muestra como tarjeta con etiquetas visibles.
         </caption>
         <thead>
           <tr>

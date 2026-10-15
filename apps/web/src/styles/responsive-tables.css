@@ -1,0 +1,72 @@
+/**
+ * Tablas demo: scroll horizontal en escritorio, tarjetas etiquetadas en móvil.
+ */
+
+.responsive-table-region {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .responsive-data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .responsive-data-table tbody tr {
+    display: block;
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    background: var(--color-bg-surface);
+  }
+
+  .responsive-data-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 38%) 1fr;
+    gap: var(--space-2);
+    align-items: start;
+    border: none;
+    padding: var(--space-2) 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .responsive-data-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+  }
+
+  .responsive-data-table .members-table__hide-sm,
+  .responsive-data-table .members-table__hide-md,
+  .responsive-data-table .demo-data-table__hide-sm,
+  .responsive-data-table .demo-data-table__hide-md {
+    display: grid;
+  }
+
+  .responsive-data-table .members-table__sort,
+  .responsive-data-table .demo-data-table__sort {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .members-table-wrap,
+  .demo-data-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-data-table {
+    min-width: 36rem;
+  }
+}

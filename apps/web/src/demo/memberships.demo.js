@@ -113,6 +113,7 @@ export const DEMO_ASSIGNED_MEMBERSHIPS = DEMO_MEMBERS.map((member, index) => {
     startDate: member.enrolledOn,
     endDate: member.expiresOn,
     lifecycle,
+    branchId: member.branchId,
     branchName: member.branchName,
     priceIllustrativeMxn: plan.priceIllustrativeMxn,
     isDemo: true,

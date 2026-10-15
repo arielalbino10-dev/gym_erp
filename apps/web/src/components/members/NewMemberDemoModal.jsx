@@ -4,11 +4,8 @@ import Button from "../ui/Button.jsx";
 import FormField from "../ui/FormField.jsx";
 import SelectInput from "../ui/SelectInput.jsx";
 import TextInput from "../ui/TextInput.jsx";
-import {
-  DEMO_BRANCHES,
-  MEMBERSHIP_TYPES,
-  createSessionDemoMember,
-} from "../../demo/members.demo.js";
+import { branchFilterOptionsForLists } from "../../demo/branches.demo.js";
+import { MEMBERSHIP_TYPES, createSessionDemoMember } from "../../demo/members.demo.js";
 
 const MEMBERSHIP_OPTIONS = [
   { value: MEMBERSHIP_TYPES.MONTHLY, label: "Mensual (demo)" },
@@ -16,7 +13,8 @@ const MEMBERSHIP_OPTIONS = [
   { value: MEMBERSHIP_TYPES.ANNUAL, label: "Anual (demo)" },
 ];
 
-const BRANCH_OPTIONS = DEMO_BRANCHES.map((name) => ({ value: name, label: name }));
+const BRANCH_OPTIONS = branchFilterOptionsForLists().filter((opt) => opt.value !== "");
+const DEFAULT_BRANCH_ID = BRANCH_OPTIONS[0]?.value ?? "";
 
 function validate(fields) {
   const errors = {};
@@ -35,8 +33,8 @@ function validate(fields) {
   if (!fields.membershipType) {
     errors.membershipType = "Seleccione un tipo de membresía.";
   }
-  if (!fields.branchName) {
-    errors.branchName = "Seleccione una sucursal demo.";
+  if (!fields.branchId) {
+    errors.branchId = "Seleccione una sucursal demo.";
   }
   return errors;
 }
@@ -46,7 +44,7 @@ export default function NewMemberDemoModal({ isOpen, onClose, sessionIndex, onCr
     fullName: "",
     phone: "",
     membershipType: MEMBERSHIP_TYPES.MONTHLY,
-    branchName: DEMO_BRANCHES[0],
+    branchId: DEFAULT_BRANCH_ID,
   });
   const [errors, setErrors] = useState({});
 
@@ -55,7 +53,7 @@ export default function NewMemberDemoModal({ isOpen, onClose, sessionIndex, onCr
       fullName: "",
       phone: "",
       membershipType: MEMBERSHIP_TYPES.MONTHLY,
-      branchName: DEMO_BRANCHES[0],
+      branchId: DEFAULT_BRANCH_ID,
     });
     setErrors({});
   }
@@ -65,7 +63,7 @@ export default function NewMemberDemoModal({ isOpen, onClose, sessionIndex, onCr
       fields.fullName.trim() !== "" ||
       fields.phone.trim() !== "" ||
       fields.membershipType !== MEMBERSHIP_TYPES.MONTHLY ||
-      fields.branchName !== DEMO_BRANCHES[0]
+      fields.branchId !== DEFAULT_BRANCH_ID
     );
   }
 
@@ -86,7 +84,7 @@ export default function NewMemberDemoModal({ isOpen, onClose, sessionIndex, onCr
         fullName: "demo-full-name",
         phone: "demo-phone",
         membershipType: "demo-membership",
-        branchName: "demo-branch",
+        branchId: "demo-branch",
       };
       const firstKey = Object.keys(nextErrors)[0];
       document.getElementById(focusIds[firstKey])?.focus();
@@ -149,11 +147,11 @@ export default function NewMemberDemoModal({ isOpen, onClose, sessionIndex, onCr
             options={MEMBERSHIP_OPTIONS}
           />
         </FormField>
-        <FormField id="demo-branch" label="Sucursal demo" required error={errors.branchName}>
+        <FormField id="demo-branch" label="Sucursal demo" required error={errors.branchId}>
           <SelectInput
             id="demo-branch"
-            value={fields.branchName}
-            onChange={(e) => patchField("branchName", e.target.value)}
+            value={fields.branchId}
+            onChange={(e) => patchField("branchId", e.target.value)}
             options={BRANCH_OPTIONS}
           />
         </FormField>

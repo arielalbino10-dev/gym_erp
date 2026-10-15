@@ -1,4 +1,6 @@
 import { useState } from "react";
+import DemoBranchScopeBanner from "../components/layout/DemoBranchScopeBanner.jsx";
+import { useBranchScopedItems } from "../hooks/useBranchScopedItems.js";
 import MemberDetailModal from "../components/members/MemberDetailModal.jsx";
 import MembersTable from "../components/members/MembersTable.jsx";
 import MembersToolbar from "../components/members/MembersToolbar.jsx";
@@ -8,7 +10,9 @@ import Card from "../components/ui/Card.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import Pagination from "../components/ui/Pagination.jsx";
+import { itemMatchesDemoBranch } from "../demo/branches.demo.js";
 import { DEMO_MEMBERS, MEMBERS_PAGE_SIZE_OPTIONS } from "../demo/members.demo.js";
+import { useDemoUiPreferences } from "../app/providers/DemoUiPreferencesProvider.jsx";
 import { useMemberListState } from "../hooks/useMemberListState.js";
 
 export default function MembersPage() {
@@ -17,15 +21,22 @@ export default function MembersPage() {
   const [detailMember, setDetailMember] = useState(null);
   const [newOpen, setNewOpen] = useState(false);
   const [demoNotice, setDemoNotice] = useState(null);
+  const { selectedBranchId, isBranchFilterActive } = useDemoUiPreferences();
 
-  const list = useMemberListState(members);
+  const branchScopedMembers = useBranchScopedItems(members);
+  const list = useMemberListState(branchScopedMembers);
 
   function handleCreated(member) {
     setMembers((prev) => [member, ...prev]);
     setSessionSeq((n) => n + 1);
+    const visibleInTable = itemMatchesDemoBranch(member, selectedBranchId);
+    const branchHint =
+      isBranchFilterActive && !visibleInTable
+        ? ` Está en ${member.branchName}; elija esa sucursal en la barra superior o "Todas" para verlo en la tabla.`
+        : "";
     setDemoNotice({
       title: "Registro de demostración",
-      message: `${member.fullName} (${member.memberCode}) se agregó solo en memoria para esta sesión.`,
+      message: `${member.fullName} (${member.memberCode}) se agregó solo en memoria para esta sesión.${branchHint}`,
     });
   }
 
@@ -39,6 +50,8 @@ export default function MembersPage() {
           Nuevo socio (Demo)
         </Button>
       </PageHeader>
+
+      <DemoBranchScopeBanner />
 
       {demoNotice ? (
         <div className="members-page__notice" role="status">

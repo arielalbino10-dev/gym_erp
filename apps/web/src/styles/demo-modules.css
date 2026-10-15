@@ -125,42 +125,7 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 767px) {
-  .demo-data-table__sort {
-    display: none;
-  }
-
-  .demo-data-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
-
-  .demo-data-table tr {
-    display: block;
-    margin-bottom: var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-3);
-    background: var(--color-bg-surface);
-  }
-
-  .demo-data-table td {
-    display: grid;
-    grid-template-columns: 6.5rem 1fr;
-    gap: var(--space-2);
-    border: none;
-    padding: var(--space-2) 0;
-  }
-
-  .demo-data-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--color-text-secondary);
-  }
-}
+/* Layout móvil de tablas: ver responsive-tables.css */
 
 @media (min-width: 768px) {
   .demo-data-table__hide-sm {

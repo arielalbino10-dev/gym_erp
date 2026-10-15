@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import DemoBranchScopeBanner from "../components/layout/DemoBranchScopeBanner.jsx";
+import { useBranchScopedItems } from "../hooks/useBranchScopedItems.js";
 import AssignedMembershipsTable, {
   MEMBERSHIP_SORT,
 } from "../components/memberships/AssignedMembershipsTable.jsx";
@@ -55,9 +57,10 @@ const listOptions = {
 export default function MembershipsPage() {
   const [detailRow, setDetailRow] = useState(null);
   const assignments = useMemo(() => DEMO_ASSIGNED_MEMBERSHIPS, []);
-  const lifecycleCounts = useMemo(() => countByLifecycle(assignments), [assignments]);
+  const branchScopedAssignments = useBranchScopedItems(assignments);
+  const lifecycleCounts = useMemo(() => countByLifecycle(branchScopedAssignments), [branchScopedAssignments]);
 
-  const list = usePaginatedListState(assignments, listOptions);
+  const list = usePaginatedListState(branchScopedAssignments, listOptions);
 
   return (
     <div className="demo-module-page">
@@ -65,6 +68,8 @@ export default function MembershipsPage() {
         title="Membresías (demostración)"
         description="Catálogo de planes ilustrativos y membresías asignadas a socios ficticios. Sin cobros, renovaciones ni contabilidad."
       />
+
+      <DemoBranchScopeBanner />
 
       <section aria-labelledby="plans-section-title">
         <h3 id="plans-section-title" className="demo-module-page__section-title">

@@ -2,6 +2,9 @@
 @import "./dashboard.css";
 @import "./members.css";
 @import "./demo-modules.css";
+@import "./branches.css";
+@import "./settings.css";
+@import "./responsive-tables.css";
 
 *,
 *::before,

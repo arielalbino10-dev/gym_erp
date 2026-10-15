@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import DemoBranchScopeBanner from "../components/layout/DemoBranchScopeBanner.jsx";
+import { useBranchScopedItems } from "../hooks/useBranchScopedItems.js";
 import AttendanceDetailModal from "../components/attendance/AttendanceDetailModal.jsx";
 import AttendanceRecordsTable, { ATTENDANCE_SORT } from "../components/attendance/AttendanceRecordsTable.jsx";
 import AttendanceSummary from "../components/attendance/AttendanceSummary.jsx";
@@ -10,18 +12,14 @@ import Pagination from "../components/ui/Pagination.jsx";
 import {
   ATTENDANCE_PAGE_SIZE_OPTIONS,
   ATTENDANCE_PERIOD_PRESETS,
-  BRANCH_FILTER_OPTIONS,
   DEMO_ATTENDANCE_RECORDS,
   filterRecordsByPeriodPreset,
   summarizeAttendance,
 } from "../demo/attendance-records.demo.js";
 import { usePaginatedListState } from "../hooks/usePaginatedListState.js";
 
-function filterRecord(item, { query, filters }) {
+function filterRecord(item, { query }) {
   const q = query.trim().toLowerCase();
-  if (filters.branch && item.branchName !== filters.branch) {
-    return false;
-  }
   if (!q) {
     return true;
   }
@@ -52,7 +50,8 @@ export default function AttendancePage() {
     [periodPreset],
   );
 
-  const list = usePaginatedListState(periodRecords, listOptions);
+  const branchScopedRecords = useBranchScopedItems(periodRecords);
+  const list = usePaginatedListState(branchScopedRecords, listOptions);
 
   function handlePeriodChange(value) {
     setPeriodPreset(value);
@@ -60,8 +59,8 @@ export default function AttendancePage() {
   }
 
   const filteredForSummary = useMemo(() => {
-    return periodRecords.filter((item) => filterRecord(item, { query: list.query, filters: list.filters }));
-  }, [periodRecords, list.query, list.filters]);
+    return branchScopedRecords.filter((item) => filterRecord(item, { query: list.query }));
+  }, [branchScopedRecords, list.query]);
 
   const summary = useMemo(() => summarizeAttendance(filteredForSummary), [filteredForSummary]);
 
@@ -71,6 +70,8 @@ export default function AttendancePage() {
         title="Asistencias (demostración)"
         description="Historial de entradas ficticias por socio, fecha y sucursal demo. Sin QR, biometría ni validación de acceso real."
       />
+
+      <DemoBranchScopeBanner />
 
       <Card title="Resumen y registros" className="demo-module-page__card">
         <ListToolbar
@@ -86,13 +87,6 @@ export default function AttendancePage() {
               value: periodPreset,
               onChange: handlePeriodChange,
               options: ATTENDANCE_PERIOD_PRESETS,
-            },
-            {
-              id: "attendance-filter-branch",
-              label: "Sucursal",
-              value: list.filters.branch ?? "",
-              onChange: (v) => list.setFilter("branch", v),
-              options: BRANCH_FILTER_OPTIONS,
             },
           ]}
           totalCount={list.totalCount}
@@ -110,7 +104,7 @@ export default function AttendancePage() {
         {list.totalCount === 0 ? (
           <EmptyState title={list.hasActiveFilters ? "Sin coincidencias" : "Sin registros en el periodo"}>
             {list.hasActiveFilters ? (
-              <p>Pruebe otro socio, sucursal o amplíe el periodo de demostración.</p>
+              <p>Pruebe otro socio, cambie la sucursal en la barra superior o amplíe el periodo.</p>
             ) : (
               <p>No hay entradas ficticias para mostrar.</p>
             )}

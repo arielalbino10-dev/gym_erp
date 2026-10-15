@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { titleForPathname } from "../../app/navigation.js";
+import DemoBranchSelector from "./DemoBranchSelector.jsx";
 import HealthIndicator from "./HealthIndicator.jsx";
 
 export default function TopBar() {
@@ -13,6 +14,7 @@ export default function TopBar() {
         <h1 className="topbar__title">{title}</h1>
       </div>
       <div className="topbar__actions">
+        <DemoBranchSelector />
         <HealthIndicator />
       </div>
     </header>
