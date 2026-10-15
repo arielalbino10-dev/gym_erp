@@ -1,6 +1,7 @@
 # Gym ERP Web
 
-ERP administrativo React + Vite (`.jsx`). H0-B: pantalla de estado de la API.
+ERP administrativo React + Vite (`.jsx`). H0-B: health API. UI-01.2: AppShell,
+navegación por secciones y tokens visuales (datos demostrativos pendientes).
 
 ## Setup
 

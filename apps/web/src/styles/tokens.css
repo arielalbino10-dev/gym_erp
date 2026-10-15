@@ -1,0 +1,65 @@
+:root {
+  /* Colores — identidad UI-01.2 */
+  --color-bg-app: #f4f6f9;
+  --color-bg-surface: #ffffff;
+  --color-bg-sidebar: #0f172a;
+  --color-sidebar-text: #e2e8f0;
+  --color-sidebar-text-muted: #94a3b8;
+  --color-sidebar-active-bg: rgb(13 148 136 / 18%);
+  --color-sidebar-active-text: #5eead4;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-border: #e2e8f0;
+  --color-accent: #0d9488;
+  --color-accent-hover: #0f766e;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #166534;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-neutral-bg: #e2e8f0;
+  --color-neutral-text: #334155;
+  --color-demo-banner-bg: #fff7ed;
+  --color-demo-banner-border: #fed7aa;
+  --color-demo-banner-text: #9a3412;
+
+  /* Tipografía */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+
+  /* Espaciado (base 4px) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  /* Layout */
+  --sidebar-width: 16.25rem;
+  --topbar-height: 3.5rem;
+  --mobile-nav-height: 4rem;
+  --content-max-width: 72rem;
+
+  /* Forma */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 6%);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 8%);
+
+  /* Breakpoints (referencia en media queries) */
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+
+  --focus-ring: 0 0 0 3px rgb(13 148 136 / 35%);
+}
