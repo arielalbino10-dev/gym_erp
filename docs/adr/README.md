@@ -15,6 +15,7 @@ Registro de decisiones arquitectónicas del proyecto `gym_erp`.
 | [0007](0007-herramientas-desarrollo.md) | Herramientas de desarrollo (uv, npm, Docker) | **Accepted** |
 | [0008](0008-dos-bases-mongodb-platform-operational.md) | Dos bases MongoDB (platform y operational) | **Accepted** |
 | [0009](0009-modelo-organizacional-mvp.md) | Modelo organizacional MVP | **Accepted** |
+| [0010](0010-organization-onboarding-idempotencia.md) | Onboarding transaccional e idempotencia (H1-D) | **Proposed** |
 
 Estados: **Accepted** = aprobado por el propietario; **Proposed** = pendiente de aprobación.
 

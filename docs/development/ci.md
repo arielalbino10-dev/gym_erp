@@ -37,6 +37,7 @@ export MONGODB_PLATFORM_DB=gym_platform_test
 export MONGODB_OPERATIONAL_DB=gym_operational_test
 cd apps/api
 uv run pytest -m integration -v
+uv run pytest tests/integration/organization/ -v   # H1-D organization (manual)
 ```
 
 Reglas de la URI:

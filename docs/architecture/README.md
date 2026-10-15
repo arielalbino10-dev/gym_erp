@@ -24,7 +24,8 @@
 | D4 | `email_normalized` + índices parciales | **Accepted** | [Convenciones](multi-tenant-data-conventions.md) |
 | D5 | 404 por id ajeno; listados vacíos/autorizados | **Accepted** | [TenantContext](tenant-context-and-repositories.md) |
 | D6 | `database/README.md` solo referencia | **Hecho** | [database/README.md](../../database/README.md) |
-| D7 | Roles propuestos, sin ADR-0010 | **Propuesta** | ADR-0009 § roles |
+| D7 | Roles propuestos (catálogo permisos) | **Propuesta** | ADR-0009 § roles |
+| D9 | Onboarding transaccional + idempotencia H1-D | **Proposed** | [ADR-0010](../adr/0010-organization-onboarding-idempotencia.md) |
 | D8 | Enlace H1-A en README raíz | **Hecho** | [README.md](../../README.md) |
 
 Autenticación (ADR-0003): **Proposed** — ver [pendientes](pending-decisions-auth-0003.md).
@@ -37,6 +38,14 @@ Autenticación (ADR-0003): **Proposed** — ver [pendientes](pending-decisions-a
 | [TenantContext y repositorios](tenant-context-and-repositories.md) | Contrato scoped, anti-IDOR, D5 |
 | [Matriz de pruebas de aislamiento](tenant-isolation-test-matrix.md) | ≥2 tenants, T-01–T-15 |
 | [Pendientes ADR-0003](pending-decisions-auth-0003.md) | Auth **no** aprobada |
+
+## H1-D (organization)
+
+| Documento | Contenido |
+|-----------|-----------|
+| [Módulo organization](organization-module.md) | Tenant/Branch, UoW, idempotencia, CreateOrganization, riesgos |
+| [ADR-0010](../adr/0010-organization-onboarding-idempotencia.md) | Decisiones onboarding/idempotencia (**Proposed**) |
+| [Integración MongoDB](../development/integration-mongodb.md) | Suites organization + prefijos efímeros |
 
 ## Otros documentos
 

@@ -127,6 +127,39 @@ async def test_branch_scoped_repository_restricts_branches(mock_collection):
 
 
 @pytest.mark.asyncio
+async def test_branch_scoped_find_one_rejects_caller_branch_id_filter(mock_collection):
+    ctx = make_context_tenant_a(allowed_branch_ids=frozenset({BRANCH_X_ID}))
+    repo = TenantScopedRepository(mock_collection, ctx, branch_scoped=True)
+    with pytest.raises(TenantScopeError):
+        await repo.find_one({"branch_id": BRANCH_X_ID})
+
+
+@pytest.mark.asyncio
+async def test_find_one_by_branch_id_uses_trusted_filter(mock_collection):
+    ctx = make_context_tenant_a(allowed_branch_ids=frozenset({BRANCH_X_ID}))
+    repo = TenantScopedRepository(mock_collection, ctx, branch_scoped=True)
+    await repo.find_one_by_branch_id(BRANCH_X_ID)
+    filter_arg = mock_collection.find_one.await_args[0][0]
+    assert filter_arg == {"tenant_id": TENANT_A_ID, "branch_id": BRANCH_X_ID}
+
+
+@pytest.mark.asyncio
+async def test_find_one_by_branch_id_rejects_out_of_scope(mock_collection):
+    ctx = make_context_tenant_a(allowed_branch_ids=frozenset({BRANCH_X_ID}))
+    repo = TenantScopedRepository(mock_collection, ctx, branch_scoped=True)
+    with pytest.raises(TenantScopeError):
+        await repo.find_one_by_branch_id(BRANCH_Y_ID)
+
+
+@pytest.mark.asyncio
+async def test_find_one_by_branch_id_enforces_allowed_when_not_branch_scoped(mock_collection):
+    ctx = make_context_tenant_a(allowed_branch_ids=frozenset({BRANCH_X_ID}))
+    repo = TenantScopedRepository(mock_collection, ctx, branch_scoped=False)
+    with pytest.raises(TenantScopeError):
+        await repo.find_one_by_branch_id(BRANCH_Y_ID)
+
+
+@pytest.mark.asyncio
 async def test_aggregate_prepends_match(mock_collection):
     ctx = make_context_tenant_a()
     repo = TenantScopedRepository(mock_collection, ctx)

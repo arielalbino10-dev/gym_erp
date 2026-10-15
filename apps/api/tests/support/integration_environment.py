@@ -21,6 +21,10 @@ EXPECTED_REPLICA_SET = "rs0"
 ALLOWED_MONGODB_PORT = 27017
 
 INTEGRATION_COLLECTION_PREFIX = "gym_erp_iso_"
+ORG_PLATFORM_COLLECTION_PREFIX = "gym_erp_org_plt_"
+ORG_PLATFORM_IDEMPOTENCY_COLLECTION_PREFIX = "gym_erp_org_idm_"
+ORG_OPERATIONAL_COLLECTION_PREFIX = "gym_erp_org_op_"
+EXPECTED_PLATFORM_DB = "gym_platform_test"
 
 FORBIDDEN_PRIVILEGED_ROLES = frozenset(
     {
@@ -155,6 +159,18 @@ def generate_ephemeral_collection_name() -> str:
     return f"{INTEGRATION_COLLECTION_PREFIX}{secrets.token_hex(8)}"
 
 
+def generate_org_platform_collection_name() -> str:
+    return f"{ORG_PLATFORM_COLLECTION_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_org_platform_idempotency_collection_name() -> str:
+    return f"{ORG_PLATFORM_IDEMPOTENCY_COLLECTION_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_org_operational_collection_name() -> str:
+    return f"{ORG_OPERATIONAL_COLLECTION_PREFIX}{secrets.token_hex(8)}"
+
+
 def assert_ephemeral_collection_safe_for_teardown(
     collection_name: str,
     *,
@@ -168,6 +184,25 @@ def assert_ephemeral_collection_safe_for_teardown(
         raise ValueError("El nombre de colección no coincide con el registrado para la ejecución.")
     if not collection_name.startswith(INTEGRATION_COLLECTION_PREFIX):
         raise ValueError("La colección no tiene el prefijo reservado a pruebas de integración.")
+
+
+def assert_organization_ephemeral_collection_safe_for_teardown(
+    collection_name: str,
+    *,
+    expected_name: str,
+    database_name: str,
+    collection_prefix: str,
+    expected_database: str,
+) -> None:
+    assert_allowed_integration_database_name(database_name)
+    if database_name != expected_database:
+        raise ValueError(
+            f"La limpieza solo está permitida en la base de prueba {expected_database!r}."
+        )
+    if collection_name != expected_name:
+        raise ValueError("El nombre de colección no coincide con el registrado para la ejecución.")
+    if not collection_name.startswith(collection_prefix):
+        raise ValueError("La colección no tiene el prefijo reservado a pruebas organization.")
 
 
 def _normalize_role_db(role_db: str) -> str:

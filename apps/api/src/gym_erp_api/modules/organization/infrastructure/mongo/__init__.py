@@ -1,0 +1,1 @@
+"""Adaptadores MongoDB para organization."""

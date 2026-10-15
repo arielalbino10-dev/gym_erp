@@ -13,6 +13,10 @@ class MongoDatabases:
         self._operational_name = settings.mongodb_operational_db
 
     @property
+    def client(self) -> AsyncMongoClient:
+        return self._client
+
+    @property
     def platform(self) -> AsyncDatabase:
         return self._client[self._platform_name]
 

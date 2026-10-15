@@ -215,6 +215,41 @@ def build_scoped_filter(
     return scoped
 
 
+def _assert_trusted_branch_id_in_scope(
+    ctx: TenantContext,
+    branch_id: str,
+    *,
+    branch_scoped: bool,
+) -> None:
+    del branch_scoped
+    if not isinstance(branch_id, str) or not branch_id:
+        raise TenantScopeError("branch_id debe ser una cadena no vacía.")
+    if ctx.allowed_branch_ids is not None and branch_id not in ctx.allowed_branch_ids:
+        raise TenantScopeError("branch_id fuera del alcance permitido por el contexto.")
+
+
+def build_trusted_branch_id_read_filter(
+    ctx: TenantContext,
+    branch_id: str,
+    *,
+    branch_scoped: bool,
+) -> dict[str, Any]:
+    """Lectura por branch_id desde capa repositorio (no sustituye filtros libres del caller)."""
+    _assert_trusted_branch_id_in_scope(ctx, branch_id, branch_scoped=branch_scoped)
+    return {"tenant_id": ctx.tenant_id, "branch_id": branch_id}
+
+
+def build_trusted_branch_id_mutation_filter(
+    ctx: TenantContext,
+    branch_id: str,
+    *,
+    branch_scoped: bool,
+) -> dict[str, Any]:
+    """Mutación por branch_id desde capa repositorio."""
+    _assert_trusted_branch_id_in_scope(ctx, branch_id, branch_scoped=branch_scoped)
+    return {"tenant_id": ctx.tenant_id, "branch_id": branch_id}
+
+
 def build_mutation_scoped_filter(
     ctx: TenantContext,
     user_filter: dict[str, Any] | None,

@@ -137,6 +137,29 @@ def test_branch_scoped_rejects_branch_id_from_caller():
         build_scoped_filter(ctx, {"branch_id": BRANCH_Y_ID}, branch_scoped=True)
 
 
+def test_trusted_branch_id_read_filter_enforces_scope():
+    from gym_erp_api.infrastructure.mongo.filter_policy import build_trusted_branch_id_read_filter
+
+    ctx = make_context_tenant_a(allowed_branch_ids=frozenset({BRANCH_X_ID}))
+    scoped = build_trusted_branch_id_read_filter(ctx, BRANCH_X_ID, branch_scoped=True)
+    assert scoped == {"tenant_id": TENANT_A_ID, "branch_id": BRANCH_X_ID}
+    with pytest.raises(TenantScopeError):
+        build_trusted_branch_id_read_filter(ctx, BRANCH_Y_ID, branch_scoped=True)
+
+
+def test_trusted_branch_id_mutation_filter_matches_read():
+    from gym_erp_api.infrastructure.mongo.filter_policy import (
+        build_trusted_branch_id_mutation_filter,
+        build_trusted_branch_id_read_filter,
+    )
+
+    ctx = make_context_tenant_a()
+    bid = BRANCH_X_ID
+    assert build_trusted_branch_id_mutation_filter(ctx, bid, branch_scoped=False) == (
+        build_trusted_branch_id_read_filter(ctx, bid, branch_scoped=False)
+    )
+
+
 def test_aggregation_prepends_mandatory_match():
     ctx = make_context_tenant_a()
     pipeline = build_aggregation_pipeline(

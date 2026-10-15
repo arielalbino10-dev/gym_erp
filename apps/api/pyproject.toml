@@ -33,6 +33,9 @@ testpaths = ["tests"]
 markers = [
     "integration: pruebas contra MongoDB real; requieren GYM_ERP_RUN_INTEGRATION=1",
     "tenant_isolation: aislamiento multi-tenant contra MongoDB de prueba (H1-C)",
+    "organization_persistence: round-trip repos organization contra MongoDB de prueba (H1-D)",
+    "organization_transactions: MongoUnitOfWork multi-base organization (H1-D.3.2.1)",
+    "organization_create_organization: CreateOrganizationHandler transaccional (H1-D.3.3.4)",
 ]
 
 [tool.ruff]

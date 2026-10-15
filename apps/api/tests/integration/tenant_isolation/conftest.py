@@ -9,6 +9,7 @@ import pytest
 import pytest_asyncio
 from pymongo import AsyncMongoClient
 
+from gym_erp_api.infrastructure.mongo.database import mongo_client_options
 from gym_erp_api.infrastructure.mongo.scoped_repository import TenantScopedRepository
 from tests.integration.conftest import IntegrationSessionState
 from tests.support.integration_environment import (
@@ -42,7 +43,7 @@ async def integration_mongo_client(
     except ValueError as exc:
         pytest.fail(f"Entorno de integración rechazado: {exc}")
 
-    client = AsyncMongoClient(integration_mongodb_uri)
+    client = AsyncMongoClient(integration_mongodb_uri, **mongo_client_options())
     try:
         await verify_integration_mongodb_identity(client)
     except Exception as exc:

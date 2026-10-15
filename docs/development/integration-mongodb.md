@@ -1,8 +1,9 @@
-# MongoDB de integración (H1-C)
+# MongoDB de integración (H1-C, H1-D)
 
-Preparación **manual** del entorno local para pruebas de integración y aislamiento
-multi-tenant. **No** forma parte de CI. **No** usar bases ni usuarios de desarrollo
-(`gym_platform`, `gym_operational`, `gym_erp_app`, `gym_erp_admin`).
+Preparación **manual** del entorno local para pruebas de integración: aislamiento
+multi-tenant (H1-C) y módulo **organization** (H1-D). **No** forma parte de CI.
+**No** usar bases ni usuarios de desarrollo (`gym_platform`, `gym_operational`,
+`gym_erp_app`, `gym_erp_admin`).
 
 ## Bases permitidas (allowlist exacta)
 
@@ -26,7 +27,7 @@ Roles esperados (validados vía `connectionStatus` antes de escrituras):
 - `readWrite` (o `read`) **solo** sobre `gym_platform_test` y `gym_operational_test`.
 - Sin roles globales (`root`, `readWriteAnyDatabase`, etc.) ni acceso a bases productivas.
 
-### Preparación (H1-C.2 — ejecutar con usuario admin, fuera de CI)
+### Preparación (ejecutar con usuario admin, fuera de CI)
 
 1. Crear las bases `gym_platform_test` y `gym_operational_test` en el replica set local.
 2. Crear el usuario `gym_erp_integration` en `admin` con contraseña dedicada de prueba.
@@ -40,6 +41,18 @@ Documentar la contraseña en gestor local (nunca en git). Ejemplo de URI (sin co
 mongodb://gym_erp_integration:<PASSWORD>@127.0.0.1:27017/gym_operational_test?replicaSet=rs0&authSource=admin
 ```
 
+## Guardias de seguridad (código de tests)
+
+Antes de cualquier escritura, el harness:
+
+1. Valida URI, bases y usuario (`validate_integration_environment`).
+2. Ejecuta `connectionStatus` y valida roles (`verify_integration_mongodb_identity`).
+3. Crea colecciones **efímeras** solo tras `security_verified=True`.
+4. Teardown: `drop` **solo** de la colección registrada si nombre + base + prefijo coinciden.
+5. **Prohibido:** `dropDatabase`, colecciones sin prefijo reservado, bases fuera de allowlist.
+
+Implementación: `apps/api/tests/support/integration_environment.py`.
+
 ## Interruptor de ejecución
 
 ```bash
@@ -49,18 +62,50 @@ export MONGODB_PLATFORM_DB=gym_platform_test
 export MONGODB_OPERATIONAL_DB=gym_operational_test
 ```
 
-Sin `GYM_ERP_RUN_INTEGRATION=1`, las pruebas marcadas `integration` se omiten.
+Sin `GYM_ERP_RUN_INTEGRATION=1`, las pruebas marcadas `integration` se **omiten** (skip).
 
-## Harness de datos (H1-C)
+Opcional: archivo local ignorado por git, p. ej. `apps/api/.env.integration`, usado con
+`uv run --env-file .env.integration` (no versionar).
+
+## Marcadores pytest (`apps/api/pyproject.toml`)
+
+| Marker | Uso |
+|--------|-----|
+| `integration` | Cualquier prueba contra MongoDB real |
+| `tenant_isolation` | Suite H1-C (`tests/integration/tenant_isolation/`) |
+| `organization_persistence` | Round-trip repos organization (H1-D.2) |
+| `organization_transactions` | MongoUnitOfWork multi-base (H1-D.3.2) |
+| `organization_create_organization` | CreateOrganizationHandler (H1-D.3.4) |
+
+CI ejecuta únicamente **`pytest -m "not integration"`** (sin MongoDB).
+
+## Harness de datos
+
+### H1-C (tenant isolation)
 
 - Tenants ficticios: **Titan Gym** y **Olympus Gym** (`tests/support/tenant_fixtures.py`).
-- Colección **efímera por sesión** en `gym_operational_test`, prefijo `gym_erp_iso_`.
-- Teardown: `drop` **solo** de esa colección tras revalidar nombre y base; **nunca**
-  `dropDatabase` ni colecciones ajenas al prefijo.
+- Colección efímera en `gym_operational_test`, prefijo **`gym_erp_iso_`**.
+
+### H1-D (organization)
+
+Por sesión de pytest en `tests/integration/organization/conftest.py`:
+
+| Prefijo | Base | Contenido |
+|---------|------|-----------|
+| `gym_erp_org_plt_` | `gym_platform_test` | Tenants de prueba |
+| `gym_erp_org_idm_` | `gym_platform_test` | Idempotencia CreateOrganization |
+| `gym_erp_org_op_` | `gym_operational_test` | Sucursales de prueba |
+
+- Colecciones creadas **fuera** de transacciones de prueba (`create_collection`).
+- **`reset_organization_ephemeral_collections`** (autouse): `delete_many({})` en las tres
+  colecciones antes y después de cada test del módulo organization.
+- Teardown de sesión: `drop` de cada colección efímera tras revalidación.
+
+Wiring del handler en tests: `tests/support/create_organization_integration.py`.
 
 ## Comandos
 
-**H1-C.1 / CI (sin MongoDB):**
+**Unitarias / CI (sin MongoDB):**
 
 ```bash
 cd apps/api
@@ -69,16 +114,37 @@ uv run ruff format --check .
 uv run pytest -m "not integration" -v
 ```
 
-**H1-C.3 (autorización explícita, MongoDB real):**
+**Integración — aislamiento H1-C (manual):**
 
 ```bash
 cd apps/api
 uv run pytest -m "integration and tenant_isolation" -v
 ```
 
+**Integración — organization completa (manual, H1-D):**
+
+```bash
+cd apps/api
+# Con variables exportadas o --env-file .env.integration (local, no git)
+uv run pytest tests/integration/organization/ -v
+```
+
+Subconjuntos:
+
+```bash
+uv run pytest -m "integration and organization_persistence" -v
+uv run pytest -m "integration and organization_transactions" -v
+uv run pytest -m "integration and organization_create_organization" -v
+```
+
+**Nota:** La ejecución exitosa de integración es **local del desarrollador**; GitHub Actions
+**no** ejecuta estas suites salvo cambio explícito futuro de CI.
+
 ## Implementación en repo
 
 - Validadores: `apps/api/tests/support/integration_environment.py`
-- Fixtures: `apps/api/tests/integration/conftest.py`,
-  `apps/api/tests/integration/tenant_isolation/conftest.py`
-- Matriz: [tenant-isolation-test-matrix.md](../architecture/tenant-isolation-test-matrix.md)
+- Fixtures globales: `apps/api/tests/integration/conftest.py`
+- Fixtures H1-C: `apps/api/tests/integration/tenant_isolation/conftest.py`
+- Fixtures H1-D: `apps/api/tests/integration/organization/conftest.py`
+- Matriz H1-C: [tenant-isolation-test-matrix.md](../architecture/tenant-isolation-test-matrix.md)
+- Módulo organization: [organization-module.md](../architecture/organization-module.md)

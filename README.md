@@ -22,6 +22,8 @@ TypeScript y archivos `.tsx` están prohibidos. Las decisiones detalladas están
 - **H0-B:** esqueleto `apps/api` (health live/ready) y `apps/web` (estado de la API).
 - **H0-C:** pruebas unitarias, Ruff y workflow GitHub Actions (sin Mongo en CI).
 - **H1-A:** arquitectura multi-tenant documentada (ADR-0008, ADR-0009 y guías en [docs/architecture/](docs/architecture/README.md)).
+- **H1-B/C:** núcleo MongoDB scoped e integración manual de aislamiento (H1-C).
+- **H1-D:** módulo organization (Tenant/Branch, UoW, idempotencia, CreateOrganization interno); ver [organization-module.md](docs/architecture/organization-module.md) y [ADR-0010 Proposed](docs/adr/0010-organization-onboarding-idempotencia.md).
 - **Infraestructura local:** MongoDB en [infra/compose/README.md](infra/compose/README.md).
 
 ## Estructura

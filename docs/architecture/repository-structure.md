@@ -1,69 +1,85 @@
 # Estructura del monorepositorio
 
-Documento de referencia. **H0-B/C** implementaron esqueleto API/web y CI; **H1-A.2**
-formalizó arquitectura multi-tenant en `docs/adr/0008`, `0009` y
-`docs/architecture/multi-tenant-data-conventions.md` y documentos relacionados (sin código de negocio aún).
+Documento de referencia. **H0-B/C:** esqueleto API/web y CI. **H1-A.2:** arquitectura
+multi-tenant documentada. **H1-B/C:** núcleo scoped MongoDB. **H1-D:** módulo
+**organization** (dominio, repos, UoW, CreateOrganization interno).
 
 ```text
 gym_erp/
-├── .cursor/rules/              # Reglas Cursor (existente)
-├── .github/workflows/          # CI — H0-C (no creado en H0-A)
+├── .cursor/rules/              # Reglas Cursor
+├── .github/workflows/          # CI (unit tests API, sin MongoDB)
 ├── apps/
-│   ├── api/                    # FastAPI, paquete gym_erp_api — H0-B+
-│   ├── web/                    # React + Vite .jsx — H0-B+
+│   ├── api/                    # FastAPI, paquete gym_erp_api
+│   ├── web/                    # React + Vite .jsx
 │   └── mobile/                 # Expo .jsx — reservado (ADR-0005)
 ├── packages/                   # JS compartido opcional — posterior
-├── database/                   # README + índices futuros (H1-A.2: solo docs)
+├── database/                   # README + índices futuros
 ├── infra/
-│   └── compose/                # MongoDB local (existente)
+│   └── compose/                # MongoDB local (replica set)
 ├── docs/
 │   ├── adr/
 │   ├── architecture/
-│   └── product/
+│   └── development/
 ├── .env.example                # Valores ficticios (raíz)
 ├── .gitignore
 └── README.md
 ```
 
-## apps/api (objetivo modular; parcialmente implementado en H0-B)
+## apps/api
 
 ```text
 apps/api/
 ├── pyproject.toml
 ├── uv.lock
 ├── src/gym_erp_api/
-│   ├── main.py                 # existente (H0-B)
-│   ├── core/                   # config (H0-B)
-│   ├── bootstrap/              # lifespan, middlewares — H1-B+
-│   ├── shared_kernel/          # TenantContext, errores — H1-B+ (ver docs H1-A)
-│   ├── presentation/api_v1/    # existente (health)
+│   ├── main.py
+│   ├── core/                   # config
+│   ├── infrastructure/mongo/ # MongoDatabases, scoped repo, UoW (H1-D)
+│   ├── shared_kernel/          # TenantContext, identifiers
+│   ├── presentation/api_v1/    # health (único router público H1-D)
 │   └── modules/
-│       ├── identity/
-│       ├── access_control/
-│       ├── organization/
+│       ├── organization/       # H1-D — ver organization-module.md
+│       ├── identity/           # reservado
+│       ├── access_control/     # reservado
 │       ├── members/
-│       ├── catalog/
-│       ├── memberships/
-│       ├── payments/
-│       ├── attendance/
-│       └── audit/
+│       └── …
 └── tests/
-    ├── integration/            # existente (H0-C)
-    ├── tenant_isolation/       # planificado (H1-B+; ver matriz H1-A)
-    └── test_*.py               # unitarias actuales
+    ├── unit/
+    │   ├── modules/organization/
+    │   └── infrastructure/
+    ├── integration/
+    │   ├── tenant_isolation/   # H1-C
+    │   └── organization/       # H1-D (Mongo manual)
+    └── support/                # fixtures, integration_environment
 ```
 
-## apps/web (futuro)
+### modules/organization (implementado H1-D)
+
+```text
+modules/organization/
+├── domain/                 # Tenant, Branch, validators
+├── application/
+│   ├── commands/           # CreateOrganizationCommand
+│   ├── ports/              # repos, idempotency, UoW factory
+│   ├── use_cases/          # CreateOrganizationHandler
+│   ├── policies/           # TenantOperationalPolicy
+│   └── authorization/      # scopes internos (no HTTP auth)
+└── infrastructure/mongo/   # mappers + Platform*/Operational* repos
+```
+
+Detalle: [organization-module.md](organization-module.md).
+
+## apps/web
 
 ```text
 apps/web/
 ├── package.json
 ├── vite.config.js
 └── src/
-    ├── app/                    # router, providers, guards UI
-    ├── features/               # por dominio funcional
+    ├── app/
+    ├── features/
     ├── components/
-    └── lib/                    # api client, formatters
+    └── lib/
 ```
 
 ## Reglas
@@ -71,3 +87,4 @@ apps/web/
 - No acceso directo a MongoDB desde frontends.
 - No duplicar reglas de negocio en `apps/web` ni `apps/mobile`.
 - Cambios de límites entre módulos → ADR aprobado.
+- Organization **sin** endpoints HTTP en H1-D (ADR-0010 Proposed).

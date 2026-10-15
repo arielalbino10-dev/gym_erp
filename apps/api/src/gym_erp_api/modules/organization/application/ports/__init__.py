@@ -1,0 +1,1 @@
+"""Puertos (Protocol) hacia persistencia."""

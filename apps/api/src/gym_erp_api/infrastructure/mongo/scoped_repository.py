@@ -10,10 +10,13 @@ from gym_erp_api.infrastructure.mongo.filter_policy import (
     build_aggregation_pipeline,
     build_mutation_scoped_filter,
     build_scoped_filter,
+    build_trusted_branch_id_mutation_filter,
+    build_trusted_branch_id_read_filter,
     prepare_insert_document,
     prepare_insert_many,
     sanitize_update,
 )
+from gym_erp_api.infrastructure.mongo.session_support import ensure_pymongo_session
 from gym_erp_api.shared_kernel.exceptions import ForbiddenMongoOperatorError
 from gym_erp_api.shared_kernel.tenant_context import TenantContext
 
@@ -61,6 +64,10 @@ class TenantScopedRepository:
     def context(self) -> TenantContext:
         return self._context
 
+    @property
+    def branch_scoped(self) -> bool:
+        return self._branch_scoped
+
     def _scoped_filter(self, user_filter: dict[str, Any] | None) -> dict[str, Any]:
         return build_scoped_filter(
             self._context,
@@ -75,6 +82,16 @@ class TenantScopedRepository:
             branch_scoped=self._branch_scoped,
         )
 
+    def _mongo_kwargs(self, allowed: frozenset[str], kwargs: dict[str, Any]) -> dict[str, Any]:
+        picked = _pick_allowed_kwargs(allowed, kwargs)
+        if "session" in picked:
+            ensure_pymongo_session(
+                picked["session"],
+                expected_client=self._collection.database.client,
+                require_in_transaction=True,
+            )
+        return picked
+
     async def find_one(
         self,
         user_filter: dict[str, Any] | None = None,
@@ -83,12 +100,28 @@ class TenantScopedRepository:
         **kwargs: Any,
     ) -> dict[str, Any] | None:
         filter_doc = self._scoped_filter(user_filter)
-        extra = _pick_allowed_kwargs(_KWARGS_FIND_ONE, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_FIND_ONE, kwargs)
+        return await self._collection.find_one(filter_doc, projection, **extra)
+
+    async def find_one_by_branch_id(
+        self,
+        branch_id: str,
+        *,
+        projection: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any] | None:
+        """Lookup por branch_id validado; no expone filtro branch_id genérico al caller."""
+        filter_doc = build_trusted_branch_id_read_filter(
+            self._context,
+            branch_id,
+            branch_scoped=self._branch_scoped,
+        )
+        extra = self._mongo_kwargs(_KWARGS_FIND_ONE, kwargs)
         return await self._collection.find_one(filter_doc, projection, **extra)
 
     def find(self, user_filter: dict[str, Any] | None = None, **kwargs: Any):
         filter_doc = self._scoped_filter(user_filter)
-        extra = _pick_allowed_kwargs(_KWARGS_FIND, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_FIND, kwargs)
         return self._collection.find(filter_doc, **extra)
 
     async def count_documents(
@@ -97,7 +130,7 @@ class TenantScopedRepository:
         **kwargs: Any,
     ) -> int:
         filter_doc = self._scoped_filter(user_filter)
-        extra = _pick_allowed_kwargs(_KWARGS_COUNT, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_COUNT, kwargs)
         return await self._collection.count_documents(filter_doc, **extra)
 
     async def insert_one(self, document: dict[str, Any], **kwargs: Any):
@@ -106,7 +139,7 @@ class TenantScopedRepository:
             self._context,
             branch_scoped=self._branch_scoped,
         )
-        extra = _pick_allowed_kwargs(_KWARGS_INSERT, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_INSERT, kwargs)
         return await self._collection.insert_one(doc, **extra)
 
     async def insert_many(self, documents: list[dict[str, Any]], **kwargs: Any):
@@ -115,7 +148,7 @@ class TenantScopedRepository:
             self._context,
             branch_scoped=self._branch_scoped,
         )
-        extra = _pick_allowed_kwargs(_KWARGS_INSERT, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_INSERT, kwargs)
         return await self._collection.insert_many(docs, **extra)
 
     async def update_one(
@@ -126,7 +159,23 @@ class TenantScopedRepository:
     ):
         filter_doc = self._mutation_filter(user_filter)
         update_doc = sanitize_update(update, branch_scoped=self._branch_scoped)
-        extra = _pick_allowed_kwargs(_KWARGS_WRITE, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_WRITE, kwargs)
+        return await self._collection.update_one(filter_doc, update_doc, **extra)
+
+    async def update_one_by_branch_id(
+        self,
+        branch_id: str,
+        update: dict[str, Any],
+        **kwargs: Any,
+    ):
+        """Actualización por branch_id validado (capa repositorio)."""
+        filter_doc = build_trusted_branch_id_mutation_filter(
+            self._context,
+            branch_id,
+            branch_scoped=self._branch_scoped,
+        )
+        update_doc = sanitize_update(update, branch_scoped=self._branch_scoped)
+        extra = self._mongo_kwargs(_KWARGS_WRITE, kwargs)
         return await self._collection.update_one(filter_doc, update_doc, **extra)
 
     async def update_many(
@@ -137,17 +186,17 @@ class TenantScopedRepository:
     ):
         filter_doc = self._mutation_filter(user_filter)
         update_doc = sanitize_update(update, branch_scoped=self._branch_scoped)
-        extra = _pick_allowed_kwargs(_KWARGS_WRITE, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_WRITE, kwargs)
         return await self._collection.update_many(filter_doc, update_doc, **extra)
 
     async def delete_one(self, user_filter: dict[str, Any] | None = None, **kwargs: Any):
         filter_doc = self._mutation_filter(user_filter)
-        extra = _pick_allowed_kwargs(_KWARGS_WRITE, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_WRITE, kwargs)
         return await self._collection.delete_one(filter_doc, **extra)
 
     async def delete_many(self, user_filter: dict[str, Any] | None = None, **kwargs: Any):
         filter_doc = self._mutation_filter(user_filter)
-        extra = _pick_allowed_kwargs(_KWARGS_WRITE, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_WRITE, kwargs)
         return await self._collection.delete_many(filter_doc, **extra)
 
     async def aggregate(
@@ -160,5 +209,5 @@ class TenantScopedRepository:
             stages,
             branch_scoped=self._branch_scoped,
         )
-        extra = _pick_allowed_kwargs(_KWARGS_AGGREGATE, kwargs)
+        extra = self._mongo_kwargs(_KWARGS_AGGREGATE, kwargs)
         return await self._collection.aggregate(pipeline, **extra)

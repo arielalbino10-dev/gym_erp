@@ -1,8 +1,9 @@
 # Gym ERP API
 
 FastAPI monolith (`gym_erp_api`). H0-B: health checks. H1-B: núcleo multi-tenant
-(`TenantContext`, `MongoDatabases`, `TenantScopedRepository`) **sin** endpoints de negocio
-ni autenticación (ADR-0003 Proposed).
+(`TenantContext`, `MongoDatabases`, `TenantScopedRepository`). H1-D: módulo **organization**
+(dominio, repos, `MongoUnitOfWork`, `CreateOrganizationHandler` **interno**) **sin**
+endpoints HTTP de organization ni autenticación (ADR-0003 Proposed).
 
 ## Setup
 
@@ -39,7 +40,8 @@ equivale a identidad autenticada.
 - `infrastructure/mongo/filter_policy.py` — filtros y escrituras seguras.
 - `infrastructure/mongo/scoped_repository.py` — acceso operational scoped.
 
-Documentación: [docs/architecture/README.md](../../docs/architecture/README.md).
+Documentación: [docs/architecture/README.md](../../docs/architecture/README.md),
+[módulo organization](../../docs/architecture/organization-module.md).
 
 ### Endurecimiento H1-B.1
 
@@ -68,8 +70,12 @@ export MONGODB_URI_TEST='...'   # gym_operational_test; ver docs/development/int
 export MONGODB_PLATFORM_DB=gym_platform_test
 export MONGODB_OPERATIONAL_DB=gym_operational_test
 uv run pytest -m integration -v
-uv run pytest -m "integration and tenant_isolation" -v   # H1-C.3
+uv run pytest -m "integration and tenant_isolation" -v   # H1-C
+uv run pytest tests/integration/organization/ -v         # H1-D (manual)
 ```
+
+Integración organization: prefijos efímeros, tres colecciones por sesión — ver
+[integration-mongodb.md](../../docs/development/integration-mongodb.md).
 
 Nunca usar bases `gym_platform` / `gym_operational` ni usuarios `gym_erp_app` / `gym_erp_admin`.
 
