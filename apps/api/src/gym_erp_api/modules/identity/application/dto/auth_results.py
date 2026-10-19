@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from gym_erp_api.modules.identity.domain.auth_session import AuthSession
 from gym_erp_api.modules.identity.domain.session_kind import SessionKind
@@ -15,6 +16,7 @@ class VerifiedPrincipal:
     user_id: str
     credential_version: int
     email_normalized: str
+    verified_at: datetime
 
 
 @dataclass(frozen=True, slots=True)

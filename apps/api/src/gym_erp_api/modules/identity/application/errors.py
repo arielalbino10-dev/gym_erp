@@ -21,6 +21,10 @@ class PlatformSessionEmissionDisabledError(IdentityApplicationError):
     """Emisión platform bloqueada hasta MFA real y composición H2-B.5."""
 
 
+class PlatformMfaVerificationFailedError(IdentityApplicationError):
+    """Código TOTP, desafío o enrolamiento inválido (mensaje genérico)."""
+
+
 class SessionResolutionFailedError(IdentityApplicationError):
     """Token de sesión inválido, expirado, revocado o identidad no usable."""
 

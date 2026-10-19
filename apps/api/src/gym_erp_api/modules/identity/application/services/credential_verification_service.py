@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import datetime
+
 from gym_erp_api.modules.identity.application.dto.auth_results import VerifiedPrincipal
 from gym_erp_api.modules.identity.application.errors import AuthenticationFailedError
 from gym_erp_api.modules.identity.application.ports.credential_repository import (
@@ -11,6 +14,7 @@ from gym_erp_api.modules.identity.application.ports.identity_repository import I
 from gym_erp_api.modules.identity.application.ports.password_hasher import PasswordHasher
 from gym_erp_api.modules.identity.domain.enums import UserIdentityStatus
 from gym_erp_api.modules.identity.domain.errors import InvalidIdentityFieldError
+from gym_erp_api.modules.identity.domain.time_utils import utc_now_ms
 from gym_erp_api.modules.identity.domain.validators import normalize_identity_email
 from gym_erp_api.modules.identity.infrastructure.crypto.argon2_password_hasher import (
     InvalidStoredPasswordHashError,
@@ -31,10 +35,12 @@ class CredentialVerificationService:
         identities: IdentityRepository,
         credentials: CredentialRepository,
         password_hasher: PasswordHasher,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._identities = identities
         self._credentials = credentials
         self._hasher = password_hasher
+        self._clock = clock or utc_now_ms
 
     async def verify(self, *, email: str, password: str) -> VerifiedPrincipal:
         if not isinstance(email, str) or not isinstance(password, str):
@@ -67,4 +73,5 @@ class CredentialVerificationService:
             user_id=identity.user_id,
             credential_version=identity.credential_version,
             email_normalized=identity.email_normalized,
+            verified_at=self._clock(),
         )

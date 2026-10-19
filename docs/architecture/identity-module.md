@@ -59,13 +59,33 @@ Repositorios: `MongoIdentityRepository`, `MongoCredentialRepository`, `MongoAuth
 - `CredentialVerificationService` — email/contraseña, Argon2id en `asyncio.to_thread`, dummy hash
   si la cuenta no existe.
 - `CreateGymSessionUseCase` / `CreatePlatformSessionUseCase`.
-- **Platform (H2-B.4.1):** emisión bloqueada por defecto (`HardDisabledPlatformSessionEmission`);
-  el ticket MFA no es prueba criptográfica hasta H2-B.5.
+- **Platform (H2-B.5):** sesión solo tras `PlatformMfaSessionAuthorization` consumida de forma
+  atómica; sin repositorio de autorizaciones → `PlatformSessionEmissionDisabledError`.
 - `ResolveSessionUseCase`, `RevokeSessionUseCase`, `RevokeAllUserSessionsUseCase`.
 
-**Sin HTTP, cookies, CSRF, rate limit ni MFA real** (puerto `PlatformMfaVerificationPort` +
-`UnconfiguredPlatformMfaVerification` hasta H2-B.5).
+**Sin HTTP, cookies, CSRF ni rate limit** en esta etapa.
 
-## Fuera de alcance (H2-B.4)
+## MFA TOTP platform (H2-B.5) — `gym_platform`
 
-Login/logout HTTP, cookies, RBAC, TenantContext, endpoints HTTP.
+| Colección | Contenido |
+|-----------|-----------|
+| `platform_mfa_totp_enrollments` | Secreto TOTP cifrado (AES-256-GCM), estado pending/enabled/disabled |
+| `platform_mfa_challenges` | Desafíos de vida corta; consumo atómico |
+| `platform_mfa_totp_steps` | Pasos TOTP usados (anti-replay); TTL solo limpieza |
+| `platform_mfa_session_authorizations` | Autorización de un solo uso para emitir sesión platform |
+
+Flujo interno: contraseña → `VerifiedPrincipal` (con `verified_at`) → desafío MFA
+(solo con prueba de contraseña reciente, TTL 5 min) → verificación TOTP → autorización →
+`CreatePlatformSessionUseCase(authorization_id=…)`.
+
+Cifrado en reposo: `AesGcmMfaSecretEncryptor` (byte de versión de clave + nonce + ciphertext).
+La clave vive fuera de MongoDB (config/env en despliegue; clave de prueba solo en tests).
+
+`PlatformMfaVerificationTicket` queda obsoleto para sesión; no sustituye autorización persistida.
+
+Casos de uso: `BeginPlatformTotpEnrollmentUseCase`, `ConfirmPlatformTotpEnrollmentUseCase`,
+`StartPlatformMfaChallengeUseCase`, `VerifyPlatformMfaChallengeUseCase`.
+
+## Fuera de alcance (H2-B.5)
+
+Login/logout HTTP, cookies, RBAC, TenantContext, endpoints HTTP, usuarios root reales.

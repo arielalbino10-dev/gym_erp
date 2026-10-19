@@ -27,6 +27,10 @@ ORG_OPERATIONAL_COLLECTION_PREFIX = "gym_erp_org_op_"
 IDENTITY_USER_IDENTITIES_PREFIX = "gym_erp_id_uid_"
 IDENTITY_USER_CREDENTIALS_PREFIX = "gym_erp_id_cred_"
 IDENTITY_AUTH_SESSIONS_PREFIX = "gym_erp_id_sess_"
+IDENTITY_MFA_TOTP_PREFIX = "gym_erp_id_mfa_totp_"
+IDENTITY_MFA_CHALLENGES_PREFIX = "gym_erp_id_mfa_chal_"
+IDENTITY_MFA_STEPS_PREFIX = "gym_erp_id_mfa_step_"
+IDENTITY_MFA_AUTHZ_PREFIX = "gym_erp_id_mfa_authz_"
 EXPECTED_PLATFORM_DB = "gym_platform_test"
 
 FORBIDDEN_PRIVILEGED_ROLES = frozenset(
@@ -184,6 +188,22 @@ def generate_identity_user_credentials_collection_name() -> str:
 
 def generate_identity_auth_sessions_collection_name() -> str:
     return f"{IDENTITY_AUTH_SESSIONS_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_mfa_totp_collection_name() -> str:
+    return f"{IDENTITY_MFA_TOTP_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_mfa_challenges_collection_name() -> str:
+    return f"{IDENTITY_MFA_CHALLENGES_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_mfa_steps_collection_name() -> str:
+    return f"{IDENTITY_MFA_STEPS_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_mfa_authz_collection_name() -> str:
+    return f"{IDENTITY_MFA_AUTHZ_PREFIX}{secrets.token_hex(8)}"
 
 
 def assert_ephemeral_collection_safe_for_teardown(

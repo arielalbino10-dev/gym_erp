@@ -10,11 +10,11 @@ from gym_erp_api.modules.identity.domain.validators import require_user_uuid_v4
 
 @dataclass(frozen=True, slots=True)
 class PlatformMfaVerificationTicket:
-    """Marcador interno post-MFA (H2-B.5).
+    """Marcador legacy del puerto ``PlatformMfaVerificationPort`` (pre H2-B.5).
 
-    No es prueba criptográfica: cualquier código en el mismo proceso puede instanciarlo.
-    La emisión platform debe estar bloqueada por ``PlatformSessionEmissionGate`` hasta
-    que el puerto MFA emita tickets con autenticidad verificable.
+    Obsoleto para ``CreatePlatformSessionUseCase``: la sesión platform exige
+    ``PlatformMfaSessionAuthorization`` consumida de forma atómica tras TOTP real.
+    Instanciar este DTO manualmente no autoriza emisión de sesión.
     """
 
     user_id: str

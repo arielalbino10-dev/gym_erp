@@ -10,6 +10,8 @@ dependencies = [
     "pydantic-settings>=2.6,<3",
     "pymongo>=4.14,<5",
     "argon2-cffi>=25.1.0",
+    "pyotp>=2.10.0",
+    "cryptography>=50.0.2",
 ]
 
 [dependency-groups]
@@ -38,6 +40,7 @@ markers = [
     "organization_transactions: MongoUnitOfWork multi-base organization (H1-D.3.2.1)",
     "organization_create_organization: CreateOrganizationHandler transaccional (H1-D.3.3.4)",
     "identity_persistence: persistencia identity/credenciales/sesiones en gym_platform_test (H2-B.3)",
+    "identity_mfa: MFA TOTP platform en gym_platform_test (H2-B.5)",
 ]
 
 [tool.ruff]

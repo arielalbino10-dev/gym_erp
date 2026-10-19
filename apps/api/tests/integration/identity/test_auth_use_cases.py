@@ -6,8 +6,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from gym_erp_api.modules.identity.application.dto.platform_mfa import PlatformMfaVerificationTicket
-from gym_erp_api.modules.identity.application.errors import PlatformSessionEmissionDisabledError
+from gym_erp_api.modules.identity.application.errors import (
+    PlatformMfaRequiredError,
+    PlatformSessionEmissionDisabledError,
+)
 from gym_erp_api.modules.identity.application.services.credential_verification_service import (
     CredentialVerificationService,
 )
@@ -86,6 +88,7 @@ async def test_platform_session_blocked_without_mfa(
     mongo_identity_repository,
     mongo_credential_repository,
     mongo_auth_session_repository,
+    mongo_platform_mfa_session_authorization_repository,
 ):
     moment = datetime(2026, 8, 2, tzinfo=UTC)
     identity = UserIdentity.create(
@@ -114,7 +117,15 @@ async def test_platform_session_blocked_without_mfa(
         clock=lambda: moment,
     )
     with pytest.raises(PlatformSessionEmissionDisabledError):
-        await platform.execute(principal=principal, mfa_ticket=None)
-    ticket = PlatformMfaVerificationTicket(user_id=identity.user_id, verified_at=moment)
-    with pytest.raises(PlatformSessionEmissionDisabledError):
-        await platform.execute(principal=principal, mfa_ticket=ticket)
+        await platform.execute(principal=principal, authorization_id=identity.user_id)
+    platform_with_auth = CreatePlatformSessionUseCase(
+        identities=mongo_identity_repository,
+        sessions=mongo_auth_session_repository,
+        authorizations=mongo_platform_mfa_session_authorization_repository,
+        clock=lambda: moment,
+    )
+    with pytest.raises(PlatformMfaRequiredError):
+        await platform_with_auth.execute(
+            principal=principal,
+            authorization_id=identity.user_id,
+        )

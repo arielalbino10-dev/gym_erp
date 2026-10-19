@@ -20,16 +20,33 @@ from gym_erp_api.modules.identity.infrastructure.mongo.mongo_credential_reposito
 from gym_erp_api.modules.identity.infrastructure.mongo.mongo_identity_repository import (
     MongoIdentityRepository,
 )
+from gym_erp_api.modules.identity.infrastructure.mongo.mongo_platform_mfa_repositories import (
+    MongoPlatformMfaChallengeRepository,
+    MongoPlatformMfaSessionAuthorizationRepository,
+    MongoPlatformMfaStepConsumptionRepository,
+    MongoPlatformTotpEnrollmentRepository,
+)
 from gym_erp_api.modules.identity.infrastructure.mongo.platform_index_specs import (
     ensure_identity_platform_indexes,
+)
+from gym_erp_api.modules.identity.infrastructure.mongo.platform_mfa_index_specs import (
+    ensure_platform_mfa_indexes,
 )
 from tests.support.integration_environment import (
     EXPECTED_PLATFORM_DB,
     IDENTITY_AUTH_SESSIONS_PREFIX,
+    IDENTITY_MFA_AUTHZ_PREFIX,
+    IDENTITY_MFA_CHALLENGES_PREFIX,
+    IDENTITY_MFA_STEPS_PREFIX,
+    IDENTITY_MFA_TOTP_PREFIX,
     IDENTITY_USER_CREDENTIALS_PREFIX,
     IDENTITY_USER_IDENTITIES_PREFIX,
     assert_organization_ephemeral_collection_safe_for_teardown,
     generate_identity_auth_sessions_collection_name,
+    generate_identity_mfa_authz_collection_name,
+    generate_identity_mfa_challenges_collection_name,
+    generate_identity_mfa_steps_collection_name,
+    generate_identity_mfa_totp_collection_name,
     generate_identity_user_credentials_collection_name,
     generate_identity_user_identities_collection_name,
     validate_integration_environment,
@@ -49,6 +66,10 @@ class IdentityIntegrationState:
     identities_collection_name: str | None = None
     credentials_collection_name: str | None = None
     sessions_collection_name: str | None = None
+    mfa_totp_collection_name: str | None = None
+    mfa_challenges_collection_name: str | None = None
+    mfa_steps_collection_name: str | None = None
+    mfa_authz_collection_name: str | None = None
     teardown_enabled: bool = False
     extra: dict = field(default_factory=dict)
 
@@ -175,6 +196,118 @@ async def identity_auth_sessions_collection(
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def identity_mfa_totp_collection(
+    identity_mongo_client: Any,
+    identity_integration_state: IdentityIntegrationState,
+) -> Any:
+    if not identity_integration_state.security_verified:
+        pytest.fail("Controles de seguridad no verificados.")
+    name = generate_identity_mfa_totp_collection_name()
+    identity_integration_state.mfa_totp_collection_name = name
+    db = identity_mongo_client[EXPECTED_PLATFORM_DB]
+    await _ensure_ephemeral_collection(db, name)
+    collection = db[name]
+    yield collection
+    if not identity_integration_state.teardown_enabled:
+        return
+    registered = identity_integration_state.mfa_totp_collection_name
+    if not registered:
+        return
+    assert_organization_ephemeral_collection_safe_for_teardown(
+        collection.name,
+        expected_name=registered,
+        database_name=collection.database.name,
+        collection_prefix=IDENTITY_MFA_TOTP_PREFIX,
+        expected_database=EXPECTED_PLATFORM_DB,
+    )
+    await collection.drop()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def identity_mfa_challenges_collection(
+    identity_mongo_client: Any,
+    identity_integration_state: IdentityIntegrationState,
+) -> Any:
+    if not identity_integration_state.security_verified:
+        pytest.fail("Controles de seguridad no verificados.")
+    name = generate_identity_mfa_challenges_collection_name()
+    identity_integration_state.mfa_challenges_collection_name = name
+    db = identity_mongo_client[EXPECTED_PLATFORM_DB]
+    await _ensure_ephemeral_collection(db, name)
+    collection = db[name]
+    yield collection
+    if not identity_integration_state.teardown_enabled:
+        return
+    registered = identity_integration_state.mfa_challenges_collection_name
+    if not registered:
+        return
+    assert_organization_ephemeral_collection_safe_for_teardown(
+        collection.name,
+        expected_name=registered,
+        database_name=collection.database.name,
+        collection_prefix=IDENTITY_MFA_CHALLENGES_PREFIX,
+        expected_database=EXPECTED_PLATFORM_DB,
+    )
+    await collection.drop()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def identity_mfa_steps_collection(
+    identity_mongo_client: Any,
+    identity_integration_state: IdentityIntegrationState,
+) -> Any:
+    if not identity_integration_state.security_verified:
+        pytest.fail("Controles de seguridad no verificados.")
+    name = generate_identity_mfa_steps_collection_name()
+    identity_integration_state.mfa_steps_collection_name = name
+    db = identity_mongo_client[EXPECTED_PLATFORM_DB]
+    await _ensure_ephemeral_collection(db, name)
+    collection = db[name]
+    yield collection
+    if not identity_integration_state.teardown_enabled:
+        return
+    registered = identity_integration_state.mfa_steps_collection_name
+    if not registered:
+        return
+    assert_organization_ephemeral_collection_safe_for_teardown(
+        collection.name,
+        expected_name=registered,
+        database_name=collection.database.name,
+        collection_prefix=IDENTITY_MFA_STEPS_PREFIX,
+        expected_database=EXPECTED_PLATFORM_DB,
+    )
+    await collection.drop()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def identity_mfa_authz_collection(
+    identity_mongo_client: Any,
+    identity_integration_state: IdentityIntegrationState,
+) -> Any:
+    if not identity_integration_state.security_verified:
+        pytest.fail("Controles de seguridad no verificados.")
+    name = generate_identity_mfa_authz_collection_name()
+    identity_integration_state.mfa_authz_collection_name = name
+    db = identity_mongo_client[EXPECTED_PLATFORM_DB]
+    await _ensure_ephemeral_collection(db, name)
+    collection = db[name]
+    yield collection
+    if not identity_integration_state.teardown_enabled:
+        return
+    registered = identity_integration_state.mfa_authz_collection_name
+    if not registered:
+        return
+    assert_organization_ephemeral_collection_safe_for_teardown(
+        collection.name,
+        expected_name=registered,
+        database_name=collection.database.name,
+        collection_prefix=IDENTITY_MFA_AUTHZ_PREFIX,
+        expected_database=EXPECTED_PLATFORM_DB,
+    )
+    await collection.drop()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def identity_platform_indexes(
     identity_user_identities_collection: Any,
     identity_user_credentials_collection: Any,
@@ -187,20 +320,48 @@ async def identity_platform_indexes(
     )
 
 
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def identity_mfa_indexes(
+    identity_mfa_totp_collection: Any,
+    identity_mfa_challenges_collection: Any,
+    identity_mfa_steps_collection: Any,
+    identity_mfa_authz_collection: Any,
+) -> None:
+    await ensure_platform_mfa_indexes(
+        totp=identity_mfa_totp_collection,
+        challenges=identity_mfa_challenges_collection,
+        steps=identity_mfa_steps_collection,
+        authorizations=identity_mfa_authz_collection,
+    )
+
+
 @pytest_asyncio.fixture(autouse=True, loop_scope="session")
 async def reset_identity_ephemeral_collections(
     identity_user_identities_collection: Any,
     identity_user_credentials_collection: Any,
     identity_auth_sessions_collection: Any,
     identity_platform_indexes: None,
+    identity_mfa_totp_collection: Any,
+    identity_mfa_challenges_collection: Any,
+    identity_mfa_steps_collection: Any,
+    identity_mfa_authz_collection: Any,
+    identity_mfa_indexes: None,
 ) -> Any:
     await identity_user_identities_collection.delete_many({})
     await identity_user_credentials_collection.delete_many({})
     await identity_auth_sessions_collection.delete_many({})
+    await identity_mfa_totp_collection.delete_many({})
+    await identity_mfa_challenges_collection.delete_many({})
+    await identity_mfa_steps_collection.delete_many({})
+    await identity_mfa_authz_collection.delete_many({})
     yield
     await identity_user_identities_collection.delete_many({})
     await identity_user_credentials_collection.delete_many({})
     await identity_auth_sessions_collection.delete_many({})
+    await identity_mfa_totp_collection.delete_many({})
+    await identity_mfa_challenges_collection.delete_many({})
+    await identity_mfa_steps_collection.delete_many({})
+    await identity_mfa_authz_collection.delete_many({})
 
 
 @pytest.fixture
@@ -222,6 +383,34 @@ def mongo_auth_session_repository(
     identity_auth_sessions_collection: Any,
 ) -> MongoAuthSessionRepository:
     return MongoAuthSessionRepository(identity_auth_sessions_collection)
+
+
+@pytest.fixture
+def mongo_platform_totp_enrollment_repository(
+    identity_mfa_totp_collection: Any,
+) -> MongoPlatformTotpEnrollmentRepository:
+    return MongoPlatformTotpEnrollmentRepository(identity_mfa_totp_collection)
+
+
+@pytest.fixture
+def mongo_platform_mfa_challenge_repository(
+    identity_mfa_challenges_collection: Any,
+) -> MongoPlatformMfaChallengeRepository:
+    return MongoPlatformMfaChallengeRepository(identity_mfa_challenges_collection)
+
+
+@pytest.fixture
+def mongo_platform_mfa_step_repository(
+    identity_mfa_steps_collection: Any,
+) -> MongoPlatformMfaStepConsumptionRepository:
+    return MongoPlatformMfaStepConsumptionRepository(identity_mfa_steps_collection)
+
+
+@pytest.fixture
+def mongo_platform_mfa_session_authorization_repository(
+    identity_mfa_authz_collection: Any,
+) -> MongoPlatformMfaSessionAuthorizationRepository:
+    return MongoPlatformMfaSessionAuthorizationRepository(identity_mfa_authz_collection)
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

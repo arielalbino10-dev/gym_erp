@@ -1,4 +1,4 @@
-"""H2-B.4.1 — emisión platform y límites de active_tenant_id."""
+"""H2-B.4.1 / H2-B.5 — emisión platform y límites de active_tenant_id."""
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
@@ -9,6 +9,7 @@ from gym_erp_api.modules.identity.application.dto.auth_results import VerifiedPr
 from gym_erp_api.modules.identity.application.dto.platform_mfa import PlatformMfaVerificationTicket
 from gym_erp_api.modules.identity.application.errors import (
     PlatformMfaNotConfiguredError,
+    PlatformMfaRequiredError,
     PlatformSessionEmissionDisabledError,
 )
 from gym_erp_api.modules.identity.application.use_cases.create_gym_session import (
@@ -17,11 +18,17 @@ from gym_erp_api.modules.identity.application.use_cases.create_gym_session impor
 from gym_erp_api.modules.identity.application.use_cases.create_platform_session import (
     CreatePlatformSessionUseCase,
 )
+from gym_erp_api.modules.identity.domain.platform_mfa.platform_mfa_session_authorization import (
+    PlatformMfaSessionAuthorization,
+)
 from gym_erp_api.modules.identity.domain.user_identity import UserIdentity
 from gym_erp_api.modules.identity.infrastructure.platform_mfa_unconfigured import (
     UnconfiguredPlatformMfaVerification,
 )
 from gym_erp_api.shared_kernel.identifiers import new_uuid
+from tests.support.in_memory_platform_mfa_repositories import (
+    InMemoryPlatformMfaSessionAuthorizationRepository,
+)
 
 MOMENT = datetime(2026, 9, 1, tzinfo=UTC)
 
@@ -31,12 +38,8 @@ def _principal(identity: UserIdentity) -> VerifiedPrincipal:
         user_id=identity.user_id,
         credential_version=identity.credential_version,
         email_normalized=identity.email_normalized,
+        verified_at=MOMENT,
     )
-
-
-class _TestOnlyEmissionGate:
-    def assert_emission_allowed(self) -> None:
-        return None
 
 
 @pytest.mark.asyncio
@@ -47,33 +50,61 @@ async def test_platform_session_blocked_by_default_even_with_forged_ticket():
     identity_repo = AsyncMock()
     identity_repo.get_by_id.return_value = identity
     session_repo = AsyncMock()
-    ticket = PlatformMfaVerificationTicket(user_id=identity.user_id, verified_at=MOMENT)
     use_case = CreatePlatformSessionUseCase(
         identities=identity_repo,
         sessions=session_repo,
         clock=lambda: MOMENT,
     )
+    forged_auth = new_uuid()
     with pytest.raises(PlatformSessionEmissionDisabledError):
-        await use_case.execute(principal=_principal(identity), mfa_ticket=ticket)
+        await use_case.execute(principal=_principal(identity), authorization_id=forged_auth)
     session_repo.insert.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_platform_session_only_in_tests_with_explicit_gate():
-    identity = UserIdentity.create(email="testgate@example.test", now=MOMENT).mark_email_verified(
+async def test_fabricated_mfa_ticket_does_not_authorize_platform_session():
+    identity = UserIdentity.create(email="ticket@example.test", now=MOMENT).mark_email_verified(
         now=MOMENT
     )
     identity_repo = AsyncMock()
     identity_repo.get_by_id.return_value = identity
     session_repo = AsyncMock()
-    ticket = PlatformMfaVerificationTicket(user_id=identity.user_id, verified_at=MOMENT)
+    authorizations = InMemoryPlatformMfaSessionAuthorizationRepository()
+    _ = PlatformMfaVerificationTicket(user_id=identity.user_id, verified_at=MOMENT)
     use_case = CreatePlatformSessionUseCase(
         identities=identity_repo,
         sessions=session_repo,
+        authorizations=authorizations,
         clock=lambda: MOMENT,
-        emission_gate=_TestOnlyEmissionGate(),
     )
-    await use_case.execute(principal=_principal(identity), mfa_ticket=ticket)
+    with pytest.raises(PlatformMfaRequiredError):
+        await use_case.execute(principal=_principal(identity), authorization_id=new_uuid())
+    session_repo.insert.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_platform_session_only_after_real_authorization():
+    identity = UserIdentity.create(email="authz@example.test", now=MOMENT).mark_email_verified(
+        now=MOMENT
+    )
+    identity_repo = AsyncMock()
+    identity_repo.get_by_id.return_value = identity
+    session_repo = AsyncMock()
+    authorizations = InMemoryPlatformMfaSessionAuthorizationRepository()
+    auth = PlatformMfaSessionAuthorization.issue(
+        user_id=identity.user_id,
+        challenge_id=new_uuid(),
+        credential_version=identity.credential_version,
+        now=MOMENT,
+    )
+    await authorizations.insert(auth)
+    use_case = CreatePlatformSessionUseCase(
+        identities=identity_repo,
+        sessions=session_repo,
+        authorizations=authorizations,
+        clock=lambda: MOMENT,
+    )
+    await use_case.execute(principal=_principal(identity), authorization_id=auth.authorization_id)
     session_repo.insert.assert_awaited_once()
 
 

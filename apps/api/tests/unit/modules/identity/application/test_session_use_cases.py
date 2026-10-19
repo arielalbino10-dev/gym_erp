@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from gym_erp_api.modules.identity.application.dto.auth_results import VerifiedPrincipal
-from gym_erp_api.modules.identity.application.dto.platform_mfa import PlatformMfaVerificationTicket
 from gym_erp_api.modules.identity.application.errors import (
     PlatformMfaRequiredError,
     PlatformSessionEmissionDisabledError,
@@ -25,6 +24,9 @@ from gym_erp_api.modules.identity.application.use_cases.revoke_all_user_sessions
 )
 from gym_erp_api.modules.identity.application.use_cases.revoke_session import RevokeSessionUseCase
 from gym_erp_api.modules.identity.domain.auth_session import AuthSession
+from gym_erp_api.modules.identity.domain.platform_mfa.platform_mfa_session_authorization import (
+    PlatformMfaSessionAuthorization,
+)
 from gym_erp_api.modules.identity.domain.session_kind import SessionKind
 from gym_erp_api.modules.identity.domain.user_identity import UserIdentity
 from gym_erp_api.modules.identity.infrastructure.crypto.session_token_hash import (
@@ -32,13 +34,11 @@ from gym_erp_api.modules.identity.infrastructure.crypto.session_token_hash impor
     hash_session_token,
 )
 from gym_erp_api.shared_kernel.identifiers import new_uuid
+from tests.support.in_memory_platform_mfa_repositories import (
+    InMemoryPlatformMfaSessionAuthorizationRepository,
+)
 
 MOMENT = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
-
-
-class _TestOnlyPlatformEmissionGate:
-    def assert_emission_allowed(self) -> None:
-        return None
 
 
 def _principal(identity: UserIdentity) -> VerifiedPrincipal:
@@ -46,6 +46,7 @@ def _principal(identity: UserIdentity) -> VerifiedPrincipal:
         user_id=identity.user_id,
         credential_version=identity.credential_version,
         email_normalized=identity.email_normalized,
+        verified_at=MOMENT,
     )
 
 
@@ -91,7 +92,7 @@ async def test_create_gym_session_returns_opaque_token(identity_repo, session_re
 
 
 @pytest.mark.asyncio
-async def test_platform_session_requires_mfa_ticket(identity_repo, session_repo):
+async def test_platform_session_disabled_without_authorization_repo(identity_repo, session_repo):
     identity = _active_identity()
     identity_repo.get_by_id.return_value = identity
     use_case = CreatePlatformSessionUseCase(
@@ -100,37 +101,46 @@ async def test_platform_session_requires_mfa_ticket(identity_repo, session_repo)
         clock=lambda: MOMENT,
     )
     with pytest.raises(PlatformSessionEmissionDisabledError):
-        await use_case.execute(principal=_principal(identity), mfa_ticket=None)
+        await use_case.execute(principal=_principal(identity), authorization_id=new_uuid())
 
 
 @pytest.mark.asyncio
-async def test_platform_session_requires_ticket_when_emission_gate_open(
-    identity_repo, session_repo
-):
+async def test_platform_session_requires_valid_authorization(identity_repo, session_repo):
     identity = _active_identity()
     identity_repo.get_by_id.return_value = identity
+    authorizations = InMemoryPlatformMfaSessionAuthorizationRepository()
     use_case = CreatePlatformSessionUseCase(
         identities=identity_repo,
         sessions=session_repo,
+        authorizations=authorizations,
         clock=lambda: MOMENT,
-        emission_gate=_TestOnlyPlatformEmissionGate(),
     )
     with pytest.raises(PlatformMfaRequiredError):
-        await use_case.execute(principal=_principal(identity), mfa_ticket=None)
+        await use_case.execute(principal=_principal(identity), authorization_id=new_uuid())
 
 
 @pytest.mark.asyncio
-async def test_platform_session_with_valid_ticket(identity_repo, session_repo):
+async def test_platform_session_with_consumed_authorization(identity_repo, session_repo):
     identity = _active_identity()
     identity_repo.get_by_id.return_value = identity
-    ticket = PlatformMfaVerificationTicket(user_id=identity.user_id, verified_at=MOMENT)
+    authorizations = InMemoryPlatformMfaSessionAuthorizationRepository()
+    auth = PlatformMfaSessionAuthorization.issue(
+        user_id=identity.user_id,
+        challenge_id=new_uuid(),
+        credential_version=identity.credential_version,
+        now=MOMENT,
+    )
+    await authorizations.insert(auth)
     use_case = CreatePlatformSessionUseCase(
         identities=identity_repo,
         sessions=session_repo,
+        authorizations=authorizations,
         clock=lambda: MOMENT,
-        emission_gate=_TestOnlyPlatformEmissionGate(),
     )
-    created = await use_case.execute(principal=_principal(identity), mfa_ticket=ticket)
+    created = await use_case.execute(
+        principal=_principal(identity),
+        authorization_id=auth.authorization_id,
+    )
     assert created.session.session_kind is SessionKind.PLATFORM
 
 
