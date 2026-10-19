@@ -54,6 +54,18 @@ Concurrencia optimista vía `updated_at` (identidad/credencial) y `last_seen_at`
 
 Repositorios: `MongoIdentityRepository`, `MongoCredentialRepository`, `MongoAuthSessionRepository`.
 
-## Fuera de alcance (H2-B.3)
+## Casos de uso internos (H2-B.4)
 
-Login/logout HTTP, cookies, MFA, RBAC, endpoints HTTP, emisión de tokens al cliente.
+- `CredentialVerificationService` — email/contraseña, Argon2id en `asyncio.to_thread`, dummy hash
+  si la cuenta no existe.
+- `CreateGymSessionUseCase` / `CreatePlatformSessionUseCase`.
+- **Platform (H2-B.4.1):** emisión bloqueada por defecto (`HardDisabledPlatformSessionEmission`);
+  el ticket MFA no es prueba criptográfica hasta H2-B.5.
+- `ResolveSessionUseCase`, `RevokeSessionUseCase`, `RevokeAllUserSessionsUseCase`.
+
+**Sin HTTP, cookies, CSRF, rate limit ni MFA real** (puerto `PlatformMfaVerificationPort` +
+`UnconfiguredPlatformMfaVerification` hasta H2-B.5).
+
+## Fuera de alcance (H2-B.4)
+
+Login/logout HTTP, cookies, RBAC, TenantContext, endpoints HTTP.
