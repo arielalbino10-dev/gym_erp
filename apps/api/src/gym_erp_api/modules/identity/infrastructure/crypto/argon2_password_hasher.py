@@ -37,9 +37,7 @@ class Argon2PasswordHasher:
 
     def _require_argon2id_hash(self, stored_hash: str) -> None:
         if not stored_hash.startswith(_ARGON2ID_PREFIX):
-            raise InvalidStoredPasswordHashError(
-                "Solo se aceptan hashes Argon2id."
-            )
+            raise InvalidStoredPasswordHashError("Solo se aceptan hashes Argon2id.")
         try:
             params = extract_parameters(stored_hash)
         except InvalidHash as exc:
@@ -47,18 +45,14 @@ class Argon2PasswordHasher:
                 "Hash almacenado no válido para Argon2id."
             ) from exc
         if params.type is not Type.ID:
-            raise InvalidStoredPasswordHashError(
-                "Solo se aceptan hashes Argon2id."
-            )
+            raise InvalidStoredPasswordHashError("Solo se aceptan hashes Argon2id.")
         cfg = self._config
         if (
             params.time_cost > cfg.max_time_cost
             or params.memory_cost > cfg.max_memory_cost_kib
             or params.parallelism > cfg.max_parallelism
         ):
-            raise InvalidStoredPasswordHashError(
-                "Parámetros Argon2id fuera de límites permitidos."
-            )
+            raise InvalidStoredPasswordHashError("Parámetros Argon2id fuera de límites permitidos.")
 
     def hash(self, plaintext: str) -> str:
         if not isinstance(plaintext, str) or not plaintext:
