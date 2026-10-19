@@ -24,6 +24,9 @@ INTEGRATION_COLLECTION_PREFIX = "gym_erp_iso_"
 ORG_PLATFORM_COLLECTION_PREFIX = "gym_erp_org_plt_"
 ORG_PLATFORM_IDEMPOTENCY_COLLECTION_PREFIX = "gym_erp_org_idm_"
 ORG_OPERATIONAL_COLLECTION_PREFIX = "gym_erp_org_op_"
+IDENTITY_USER_IDENTITIES_PREFIX = "gym_erp_id_uid_"
+IDENTITY_USER_CREDENTIALS_PREFIX = "gym_erp_id_cred_"
+IDENTITY_AUTH_SESSIONS_PREFIX = "gym_erp_id_sess_"
 EXPECTED_PLATFORM_DB = "gym_platform_test"
 
 FORBIDDEN_PRIVILEGED_ROLES = frozenset(
@@ -169,6 +172,18 @@ def generate_org_platform_idempotency_collection_name() -> str:
 
 def generate_org_operational_collection_name() -> str:
     return f"{ORG_OPERATIONAL_COLLECTION_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_user_identities_collection_name() -> str:
+    return f"{IDENTITY_USER_IDENTITIES_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_user_credentials_collection_name() -> str:
+    return f"{IDENTITY_USER_CREDENTIALS_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_identity_auth_sessions_collection_name() -> str:
+    return f"{IDENTITY_AUTH_SESSIONS_PREFIX}{secrets.token_hex(8)}"
 
 
 def assert_ephemeral_collection_safe_for_teardown(

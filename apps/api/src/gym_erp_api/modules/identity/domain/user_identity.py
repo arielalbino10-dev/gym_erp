@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import datetime
+from typing import Any
 
 from gym_erp_api.modules.identity.domain.enums import (
     IDENTITY_ALLOWED_TRANSITIONS,
@@ -12,8 +14,11 @@ from gym_erp_api.modules.identity.domain.enums import (
 from gym_erp_api.modules.identity.domain.errors import (
     InvalidIdentityFieldError,
     InvalidIdentityInvariantError,
+    InvalidIdentityPersistenceError,
     InvalidIdentityStateTransitionError,
 )
+from gym_erp_api.modules.identity.domain.persistence_utils import parse_utc_datetime
+from gym_erp_api.modules.identity.domain.time_utils import truncate_utc_to_milliseconds, utc_now_ms
 from gym_erp_api.modules.identity.domain.validators import (
     normalize_identity_email,
     require_non_negative_credential_version,
@@ -23,9 +28,7 @@ from gym_erp_api.shared_kernel.identifiers import new_uuid
 
 
 def _ensure_utc(moment: datetime) -> datetime:
-    if moment.tzinfo is None:
-        return moment.replace(tzinfo=UTC)
-    return moment.astimezone(UTC)
+    return truncate_utc_to_milliseconds(moment)
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +73,7 @@ class UserIdentity:
         now: datetime | None = None,
     ) -> UserIdentity:
         visible, normalized = normalize_identity_email(email)
-        moment = _ensure_utc(now or datetime.now(UTC))
+        moment = _ensure_utc(now) if now is not None else utc_now_ms()
         uid = require_user_uuid_v4(user_id or new_uuid())
         return cls(
             user_id=uid,
@@ -95,7 +98,7 @@ class UserIdentity:
             raise InvalidIdentityStateTransitionError(
                 f"Transición de identidad no permitida: {self.status.value} → {target.value}."
             )
-        moment = _ensure_utc(now or datetime.now(UTC))
+        moment = _ensure_utc(now) if now is not None else utc_now_ms()
         if target is UserIdentityStatus.ACTIVE and self.email_verified_at is None:
             raise InvalidIdentityInvariantError(
                 "No se puede activar sin email_verified_at (verifique correo antes)."
@@ -107,7 +110,7 @@ class UserIdentity:
         )
 
     def mark_email_verified(self, *, now: datetime | None = None) -> UserIdentity:
-        moment = _ensure_utc(now or datetime.now(UTC))
+        moment = _ensure_utc(now) if now is not None else utc_now_ms()
         if self.status is not UserIdentityStatus.PENDING_VERIFICATION:
             raise InvalidIdentityStateTransitionError(
                 "Solo pending_verification puede verificar correo hacia active."
@@ -120,9 +123,32 @@ class UserIdentity:
         )
 
     def increment_credential_version(self, *, now: datetime | None = None) -> UserIdentity:
-        moment = _ensure_utc(now or datetime.now(UTC))
+        moment = _ensure_utc(now) if now is not None else utc_now_ms()
         return replace(
             self,
             credential_version=self.credential_version + 1,
             updated_at=moment,
         )
+
+    @classmethod
+    def from_persistence(cls, raw: Mapping[str, Any]) -> UserIdentity:
+        try:
+            status = UserIdentityStatus(str(raw["status"]))
+            verified_raw = raw.get("email_verified_at")
+            verified = (
+                parse_utc_datetime(verified_raw, "email_verified_at")
+                if verified_raw is not None
+                else None
+            )
+            return cls(
+                user_id=str(raw["user_id"]),
+                email=str(raw["email"]),
+                email_normalized=str(raw["email_normalized"]),
+                status=status,
+                credential_version=int(raw["credential_version"]),
+                created_at=parse_utc_datetime(raw["created_at"], "created_at"),
+                updated_at=parse_utc_datetime(raw["updated_at"], "updated_at"),
+                email_verified_at=verified,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise InvalidIdentityPersistenceError("Documento de identidad incompleto.") from exc

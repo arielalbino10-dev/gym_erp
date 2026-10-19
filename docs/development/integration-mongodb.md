@@ -67,6 +67,10 @@ Sin `GYM_ERP_RUN_INTEGRATION=1`, las pruebas marcadas `integration` se **omiten*
 Opcional: archivo local ignorado por git, p. ej. `apps/api/.env.integration`, usado con
 `uv run --env-file .env.integration` (no versionar).
 
+**No usar `source .env.integration` en zsh/bash** si `MONGODB_URI_TEST` incluye `&` en la
+query (`replicaSet=…&authSource=…`): el shell interpreta `&` como operador de fondo. Cargar
+con `--env-file` o exportar la URI entre **comillas simples** (`export MONGODB_URI_TEST='…'`).
+
 ## Marcadores pytest (`apps/api/pyproject.toml`)
 
 | Marker | Uso |
@@ -76,6 +80,7 @@ Opcional: archivo local ignorado por git, p. ej. `apps/api/.env.integration`, us
 | `organization_persistence` | Round-trip repos organization (H1-D.2) |
 | `organization_transactions` | MongoUnitOfWork multi-base (H1-D.3.2) |
 | `organization_create_organization` | CreateOrganizationHandler (H1-D.3.4) |
+| `identity_persistence` | Identity / credenciales / sesiones platform (H2-B.3) |
 
 CI ejecuta únicamente **`pytest -m "not integration"`** (sin MongoDB).
 
@@ -102,6 +107,21 @@ Por sesión de pytest en `tests/integration/organization/conftest.py`:
 - Teardown de sesión: `drop` de cada colección efímera tras revalidación.
 
 Wiring del handler en tests: `tests/support/create_organization_integration.py`.
+
+### H2-B (identity)
+
+Por sesión en `tests/integration/identity/conftest.py` (solo **`gym_platform_test`**):
+
+| Prefijo | Base | Contenido |
+|---------|------|-----------|
+| `gym_erp_id_uid_` | `gym_platform_test` | UserIdentity |
+| `gym_erp_id_cred_` | `gym_platform_test` | UserCredential (Argon2id) |
+| `gym_erp_id_sess_` | `gym_platform_test` | AuthSession (hash de token) |
+
+```bash
+cd apps/api
+uv run --env-file .env.integration pytest tests/integration/identity -m identity_persistence -v
+```
 
 ## Comandos
 

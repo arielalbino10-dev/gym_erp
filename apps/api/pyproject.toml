@@ -37,6 +37,7 @@ markers = [
     "organization_persistence: round-trip repos organization contra MongoDB de prueba (H1-D)",
     "organization_transactions: MongoUnitOfWork multi-base organization (H1-D.3.2.1)",
     "organization_create_organization: CreateOrganizationHandler transaccional (H1-D.3.3.4)",
+    "identity_persistence: persistencia identity/credenciales/sesiones en gym_platform_test (H2-B.3)",
 ]
 
 [tool.ruff]

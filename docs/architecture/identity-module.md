@@ -39,6 +39,21 @@ Tipo: **Argon2id** exclusivamente (`argon2-cffi`, `Type.ID`).
 
 Activación desde `pending_verification`: solo `mark_email_verified` (no `transition_status` → `active`).
 
-## Fuera de alcance (H2-B.2)
+## Persistencia (H2-B.3) — `gym_platform`
 
-Login/logout, cookies, sesiones opacas, MFA, recuperación de cuenta, RBAC, endpoints HTTP, repositorios MongoDB.
+| Colección | Contenido |
+|-----------|-----------|
+| `user_identities` | `UserIdentity` |
+| `user_credentials` | hash Argon2id por `user_id` (1:1) |
+| `auth_sessions` | hash SHA-256 del token opaco; sin token plano |
+
+Índices: `email_normalized` único; `user_id` único en credenciales; `token_hash` único;
+`(user_id, session_kind)`; TTL en `expires_at` solo limpieza (expiración validada en dominio).
+
+Concurrencia optimista vía `updated_at` (identidad/credencial) y `last_seen_at` (touch sesión).
+
+Repositorios: `MongoIdentityRepository`, `MongoCredentialRepository`, `MongoAuthSessionRepository`.
+
+## Fuera de alcance (H2-B.3)
+
+Login/logout HTTP, cookies, MFA, RBAC, endpoints HTTP, emisión de tokens al cliente.
