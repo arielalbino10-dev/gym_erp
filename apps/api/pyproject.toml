@@ -42,6 +42,7 @@ markers = [
     "identity_persistence: persistencia identity/credenciales/sesiones en gym_platform_test (H2-B.3)",
     "identity_mfa: MFA TOTP platform en gym_platform_test (H2-B.5)",
     "http_security: rate limit / CSRF HTTP contra gym_platform_test (H2-B.7.1.1)",
+    "access_persistence: membresías access en gym_platform_test (H2-C.2)",
 ]
 
 [tool.ruff]
