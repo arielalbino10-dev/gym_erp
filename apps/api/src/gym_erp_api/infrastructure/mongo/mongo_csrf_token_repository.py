@@ -43,7 +43,7 @@ class MongoCsrfTokenRepository:
         except (OperationFailure, PyMongoError) as exc:
             raise RateLimitBackendError("CSRF storage failure.") from exc
 
-    async def consume_if_valid(
+    async def validate_if_valid(
         self,
         *,
         token_hash: str,
@@ -52,7 +52,7 @@ class MongoCsrfTokenRepository:
         session: object | None = None,
     ) -> bool:
         try:
-            raw = await self._collection.find_one_and_delete(
+            raw = await self._collection.find_one(
                 {
                     "_id": token_hash,
                     "binding_key": binding_key,
@@ -61,5 +61,14 @@ class MongoCsrfTokenRepository:
                 **self._kw(session),
             )
             return raw is not None
+        except (OperationFailure, PyMongoError) as exc:
+            raise RateLimitBackendError("CSRF storage failure.") from exc
+
+    async def revoke_binding(self, *, binding_key: str, session: object | None = None) -> None:
+        try:
+            await self._collection.delete_many(
+                {"binding_key": binding_key},
+                **self._kw(session),
+            )
         except (OperationFailure, PyMongoError) as exc:
             raise RateLimitBackendError("CSRF storage failure.") from exc

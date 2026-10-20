@@ -15,10 +15,13 @@ from gym_erp_api.presentation.http_security.errors import RateLimitBackendError
 from gym_erp_api.presentation.http_security.rate_limit import HttpRateLimiter, RateLimitBucket
 from tests.support.security_probe_router import router as security_probe_router
 
-pytestmark = [pytest.mark.integration, pytest.mark.http_security]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.http_security,
+    pytest.mark.asyncio(loop_scope="session"),
+]
 
 
-@pytest.mark.asyncio
 async def test_mongo_rate_limit_concurrent_requests_respect_limit(
     http_rate_limit_integration_collection,
 ):
@@ -38,19 +41,21 @@ async def test_mongo_rate_limit_concurrent_requests_respect_limit(
             now=now,
         )
 
-    results = await asyncio.gather(*[hit() for _ in range(24)])
+    attempts = 24
+    results = await asyncio.gather(*[hit() for _ in range(attempts)])
     allowed = sum(1 for decision in results if decision.allowed)
     denied = [d for d in results if not d.allowed]
-    assert allowed == limit
-    assert len(denied) == 24 - limit
+    assert allowed == limit, f"expected {limit} allowed, got {allowed}"
+    assert len(denied) == attempts - limit
     assert all(d.retry_after_seconds >= 1 for d in denied)
 
     doc = await http_rate_limit_integration_collection.find_one({"_id": f"{bucket}:{scope}"})
     assert doc is not None
-    assert int(doc["count"]) == limit
+    assert int(doc["count"]) == attempts, (
+        "count persiste intentos totales en la ventana, no solo los autorizados"
+    )
 
 
-@pytest.mark.asyncio
 async def test_mongo_rate_limit_window_rolls_over(
     http_rate_limit_integration_collection,
 ):
@@ -95,7 +100,6 @@ async def test_mongo_rate_limit_window_rolls_over(
     assert int(doc["count"]) == 1
 
 
-@pytest.mark.asyncio
 async def test_mongo_rate_limit_backend_failure_fail_closed(
     integration_mongodb_uri: str,
     http_rate_limit_integration_collection,
@@ -122,7 +126,6 @@ async def test_mongo_rate_limit_backend_failure_fail_closed(
         )
 
 
-@pytest.mark.asyncio
 async def test_probe_rate_limit_returns_429_with_retry_after(
     integration_settings: Settings,
 ):

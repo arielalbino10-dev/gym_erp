@@ -25,9 +25,21 @@ Helpers: `enforce_public_mutation_security`, `enforce_pre_authentication_mutatio
 `gym_erp_gym_session` o `gym_erp_platform_auth_cont` y el handler no usa `COOKIE_SESSION`, se rechaza
 (fail-closed ante omisión accidental).
 
-Patrón **double-submit** (`gym_erp_csrf` + header `X-CSRF-Token`). Registro server-side en
-`http_csrf_tokens` (hash SHA-256, binding por contexto — p. ej. `session:{id}` o
-`continuation:{id}`, consumo único). Métodos seguros: GET, HEAD, OPTIONS.
+Patrón **double-submit** (cookies `gym_erp_gym_csrf` / `gym_erp_platform_csrf` en path
+`/api/v1/gym` y `/api/v1/platform` + header `X-CSRF-Token`). Registro server-side en
+`http_csrf_tokens` (hash SHA-256, binding por contexto — p. ej. `session:{kind}:{id}`).
+Validación reutilizable por binding; rotación al emitir (`GET /session`, login). Revocación en logout.
+Métodos seguros: GET, HEAD, OPTIONS.
+
+## Endpoints auth (H2-B.7.2)
+
+| Ruta | Métodos |
+|------|---------|
+| `/api/v1/gym/auth` | POST login, GET session, POST logout |
+| `/api/v1/platform/auth` | POST login, POST mfa/verify, GET session, POST logout |
+
+Login platform exige documento en `platform_operator_eligibilities` (`eligible: true`) además de
+credenciales y MFA. Sin RBAC H2-C: fail-closed; concesión explícita fuera de banda (provisioning).
 
 ## Origin / Referer
 
@@ -37,6 +49,16 @@ En POST/PATCH/PUT/DELETE con cookie, comprobar `Origin` o `Referer` contra `CORS
 
 Límites lógicos documentados en `RateLimitPolicy` (IP, email, continuación MFA).
 Implementación H2-B.7.1: contadores atómicos en MongoDB (`http_rate_limit_counters`), HTTP 429 + `Retry-After`, fail-closed en rutas sensibles si el backend falla.
+El campo `count` registra **intentos totales** en la ventana (incluye rechazados); `RateLimitDecision.allowed` indica si **este** intento puede continuar (máximo `limit` autorizados por ventana, operación atómica por documento).
+
+## Login / logout y cookies obsoletas
+
+Login (`enforce_login_mutation_security`): exige Origin; CSRF solo si la cookie de sesión del **mismo realm** sigue resolviendo en backend. Cookie revocada/caducada no bloquea un login nuevo.
+Logout: idempotente — Origin siempre; CSRF solo con sesión viva; siempre limpia cookies de sesión y CSRF del realm.
+
+## Elegibilidad platform (pre-RBAC)
+
+Comprobada en login, MFA verify y `GET /platform/auth/session`. Revocación del documento `platform_operator_eligibilities` invalida el acceso en la siguiente solicitud HTTP. Endpoints platform futuros deben reutilizar `platform_session_eligibility.require_eligible_operator` tras resolver sesión (contrato H2-C).
 
 ## Enumeración de usuarios
 

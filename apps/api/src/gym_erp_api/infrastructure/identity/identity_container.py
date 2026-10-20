@@ -12,6 +12,9 @@ from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
 from gym_erp_api.modules.identity.application.services.credential_verification_service import (
     CredentialVerificationService,
 )
+from gym_erp_api.modules.identity.application.services.platform_session_eligibility import (
+    PlatformSessionEligibilityService,
+)
 from gym_erp_api.modules.identity.application.use_cases.create_gym_session import (
     CreateGymSessionUseCase,
 )
@@ -60,6 +63,10 @@ from gym_erp_api.modules.identity.infrastructure.mongo.mongo_platform_mfa_reposi
     MongoPlatformMfaStepConsumptionRepository,
     MongoPlatformTotpEnrollmentRepository,
 )
+from gym_erp_api.modules.identity.infrastructure.mongo.mongo_platform_operator_eligibility_repository import (  # noqa: E501
+    PLATFORM_OPERATOR_ELIGIBILITIES_COLLECTION,
+    MongoPlatformOperatorEligibilityRepository,
+)
 from gym_erp_api.modules.identity.infrastructure.mongo.platform_auth_continuation_mappers import (
     PLATFORM_AUTH_CONTINUATIONS_COLLECTION,
 )
@@ -100,6 +107,7 @@ class IdentityInfrastructure:
     resolve_auth_continuation: ResolvePlatformAuthContinuationUseCase
     complete_auth_continuation_mfa: CompletePlatformAuthContinuationMfaUseCase
     create_platform_session_from_continuation: CreatePlatformSessionFromContinuationUseCase
+    platform_session_eligibility: PlatformSessionEligibilityService
 
 
 def _platform_db(databases: MongoDatabases) -> AsyncDatabase:
@@ -130,6 +138,9 @@ def build_identity_infrastructure(
     )
     continuations = MongoPlatformAuthContinuationRepository(
         platform[PLATFORM_AUTH_CONTINUATIONS_COLLECTION]
+    )
+    operator_eligibility = MongoPlatformOperatorEligibilityRepository(
+        platform[PLATFORM_OPERATOR_ELIGIBILITIES_COLLECTION]
     )
 
     credential_verification = CredentialVerificationService(
@@ -205,5 +216,8 @@ def build_identity_infrastructure(
         create_platform_session_from_continuation=CreatePlatformSessionFromContinuationUseCase(
             continuations=continuations,
             create_session=create_platform,
+        ),
+        platform_session_eligibility=PlatformSessionEligibilityService(
+            eligibility=operator_eligibility,
         ),
     )

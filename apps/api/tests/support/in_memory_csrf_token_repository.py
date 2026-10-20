@@ -24,7 +24,7 @@ class InMemoryCsrfTokenRepository:
     ) -> None:
         self._records[token_hash] = _CsrfRecord(binding_key=binding_key, expires_at=expires_at)
 
-    async def consume_if_valid(
+    async def validate_if_valid(
         self,
         *,
         token_hash: str,
@@ -37,5 +37,9 @@ class InMemoryCsrfTokenRepository:
             return False
         if record.binding_key != binding_key or record.expires_at <= now:
             return False
-        del self._records[token_hash]
         return True
+
+    async def revoke_binding(self, *, binding_key: str, session: object | None = None) -> None:
+        to_delete = [k for k, v in self._records.items() if v.binding_key == binding_key]
+        for key in to_delete:
+            del self._records[key]

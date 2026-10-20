@@ -365,6 +365,27 @@ async def reset_identity_ephemeral_collections(
 
 
 @pytest.fixture
+def auth_http_repos(
+    mongo_identity_repository,
+    mongo_credential_repository,
+    mongo_auth_session_repository,
+    mongo_platform_totp_enrollment_repository,
+    mongo_platform_mfa_challenge_repository,
+    mongo_platform_mfa_step_repository,
+    mongo_platform_mfa_session_authorization_repository,
+):
+    return {
+        "identity": mongo_identity_repository,
+        "credential": mongo_credential_repository,
+        "session": mongo_auth_session_repository,
+        "totp": mongo_platform_totp_enrollment_repository,
+        "challenge": mongo_platform_mfa_challenge_repository,
+        "step": mongo_platform_mfa_step_repository,
+        "authz": mongo_platform_mfa_session_authorization_repository,
+    }
+
+
+@pytest.fixture
 def mongo_identity_repository(
     identity_user_identities_collection: Any,
 ) -> MongoIdentityRepository:
@@ -417,3 +438,5 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if "/integration/identity/" in item.nodeid.replace("\\", "/"):
             item.add_marker(pytest.mark.asyncio(loop_scope="session"))
+            # No usar @pytest.mark.asyncio en funciones: anula loop_scope=session y rompe
+            # AsyncMongoClient (session) con el loop por prueba.

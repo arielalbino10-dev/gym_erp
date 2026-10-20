@@ -40,8 +40,8 @@ class InMemoryRateLimitRepository:
             if current is None or current.window_start < cutoff:
                 self._data[doc_id] = _Window(count=1, window_start=now)
                 return RateLimitDecision(allowed=True)
-            if current.count >= limit:
+            current.count += 1
+            if current.count > limit:
                 retry = int((current.window_start + window - now).total_seconds())
                 return RateLimitDecision(allowed=False, retry_after_seconds=max(1, retry))
-            current.count += 1
             return RateLimitDecision(allowed=True)

@@ -78,6 +78,24 @@ class HttpRateLimiter:
             now=now,
         )
 
+    async def enforce_mfa_verify_ip(self, *, ip: str, now: datetime) -> None:
+        await self.enforce(
+            bucket=RateLimitBucket.MFA_VERIFY_IP,
+            scope_key=ip,
+            limit=_policy.mfa_verify_per_ip_per_minute,
+            window=timedelta(minutes=1),
+            now=now,
+        )
+
+    async def enforce_mfa_continuation(self, *, continuation_key: str, now: datetime) -> None:
+        await self.enforce(
+            bucket=RateLimitBucket.MFA_CONTINUATION,
+            scope_key=continuation_key,
+            limit=_policy.mfa_verify_per_continuation_per_minute,
+            window=timedelta(minutes=1),
+            now=now,
+        )
+
 
 def _raise_if_denied(decision: RateLimitDecision) -> None:
     if not decision.allowed:

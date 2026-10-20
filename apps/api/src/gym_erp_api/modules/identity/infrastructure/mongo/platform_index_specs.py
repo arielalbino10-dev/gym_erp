@@ -28,15 +28,22 @@ async def ensure_auth_sessions_indexes(collection: AsyncCollection) -> None:
     )
 
 
+async def ensure_platform_operator_eligibility_indexes(collection: AsyncCollection) -> None:
+    await collection.create_index("eligible", name="idx_eligible")
+
+
 async def ensure_identity_platform_indexes(
     *,
     identities: AsyncCollection,
     credentials: AsyncCollection,
     sessions: AsyncCollection,
+    operator_eligibilities: AsyncCollection | None = None,
 ) -> None:
     await ensure_user_identities_indexes(identities)
     await ensure_user_credentials_indexes(credentials)
     await ensure_auth_sessions_indexes(sessions)
+    if operator_eligibilities is not None:
+        await ensure_platform_operator_eligibility_indexes(operator_eligibilities)
 
 
 def duplicate_key_field(exc: Any) -> str | None:

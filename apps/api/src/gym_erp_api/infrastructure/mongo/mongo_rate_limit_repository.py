@@ -18,11 +18,15 @@ HTTP_RATE_LIMIT_COLLECTION = "http_rate_limit_counters"
 
 @dataclass(frozen=True, slots=True)
 class RateLimitDecision:
+    """allowed: si este intento puede continuar. El documento Mongo guarda intentos totales."""
+
     allowed: bool
     retry_after_seconds: int = 0
 
 
 class MongoRateLimitRepository:
+    """Contador atómico por ventana. ``count`` = intentos registrados (incluye rechazados)."""
+
     def __init__(self, collection: AsyncCollection) -> None:
         self._collection = collection
 

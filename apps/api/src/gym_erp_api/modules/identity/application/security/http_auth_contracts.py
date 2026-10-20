@@ -53,6 +53,16 @@ PLATFORM_AUTH_CONTINUATION_COOKIE = SessionCookiePolicy(
 
 
 @dataclass(frozen=True, slots=True)
+class CsrfCookiePolicy:
+    name: str
+    path: str
+
+
+GYM_CSRF_COOKIE = CsrfCookiePolicy(name="gym_erp_gym_csrf", path="/api/v1/gym")
+PLATFORM_CSRF_COOKIE = CsrfCookiePolicy(name="gym_erp_platform_csrf", path="/api/v1/platform")
+
+
+@dataclass(frozen=True, slots=True)
 class CsrfPolicy:
     header_name: str = "X-CSRF-Token"
     cookie_name: str = "gym_erp_csrf"

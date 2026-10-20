@@ -16,8 +16,10 @@ from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
 from gym_erp_api.main import create_app
 from gym_erp_api.modules.identity.application.errors import AuthenticationFailedError
 from gym_erp_api.modules.identity.application.security.http_auth_contracts import (
+    GYM_CSRF_COOKIE,
     GYM_SESSION_COOKIE,
     PLATFORM_AUTH_CONTINUATION_COOKIE,
+    PLATFORM_CSRF_COOKIE,
     PLATFORM_SESSION_COOKIE,
     CsrfPolicy,
 )
@@ -221,6 +223,19 @@ async def test_probe_csrf_valid_flow():
 
 
 @pytest.mark.asyncio
+async def test_pre_auth_allows_continuation_cookie_without_csrf():
+    settings = _settings()
+    app = _probe_app(settings, with_security=True)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/internal/security-probe/pre-auth-with-session-cookie",
+            headers={"Origin": _DEFAULT_ORIGIN},
+            cookies={PLATFORM_AUTH_CONTINUATION_COOKIE.name: "opaque-continuation-token"},
+        )
+    assert response.status_code == 200
+
+
 async def test_pre_auth_rejects_session_cookie_without_csrf_profile():
     settings = _settings()
     app = _probe_app(settings, with_security=True)
@@ -249,7 +264,7 @@ async def test_cookie_session_profile_requires_binding_key():
 
 
 @pytest.mark.asyncio
-async def test_csrf_token_single_use():
+async def test_csrf_token_reusable_for_same_binding():
     settings = _settings()
     app = _probe_app(settings, with_security=True)
     transport = ASGITransport(app=app)
@@ -271,7 +286,45 @@ async def test_csrf_token_single_use():
             headers={"Origin": _DEFAULT_ORIGIN, _CSRF.header_name: token},
             cookies={_CSRF.cookie_name: token},
         )
-        assert second.status_code == 403
+        assert second.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_csrf_gym_and_platform_cookies_isolated():
+    settings = _settings()
+    app = _probe_app(settings, with_security=True)
+    transport = ASGITransport(app=app)
+    gym_binding = "session:gym:11111111-1111-4111-8111-111111111111"
+    plat_binding = "session:platform:22222222-2222-4222-8222-222222222222"
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        gym_issue = await client.post(
+            f"/api/v1/internal/security-probe/csrf-issue/{gym_binding}",
+            headers={"Origin": _DEFAULT_ORIGIN},
+        )
+        gym_token = gym_issue.headers.get(_CSRF.header_name)
+        plat_issue = await client.post(
+            f"/api/v1/internal/security-probe/csrf-issue/{plat_binding}",
+            headers={"Origin": _DEFAULT_ORIGIN},
+        )
+        plat_token = plat_issue.headers.get(_CSRF.header_name)
+        gym_ok = await client.post(
+            f"/api/v1/internal/security-probe/csrf/{gym_binding}",
+            headers={"Origin": _DEFAULT_ORIGIN, _CSRF.header_name: gym_token},
+            cookies={GYM_CSRF_COOKIE.name: gym_token, PLATFORM_CSRF_COOKIE.name: plat_token},
+        )
+        assert gym_ok.status_code == 200
+        plat_ok = await client.post(
+            f"/api/v1/internal/security-probe/csrf/{plat_binding}",
+            headers={"Origin": _DEFAULT_ORIGIN, _CSRF.header_name: plat_token},
+            cookies={GYM_CSRF_COOKIE.name: gym_token, PLATFORM_CSRF_COOKIE.name: plat_token},
+        )
+        assert plat_ok.status_code == 200
+        cross = await client.post(
+            f"/api/v1/internal/security-probe/csrf/{gym_binding}",
+            headers={"Origin": _DEFAULT_ORIGIN, _CSRF.header_name: plat_token},
+            cookies={GYM_CSRF_COOKIE.name: plat_token, PLATFORM_CSRF_COOKIE.name: gym_token},
+        )
+        assert cross.status_code == 403
 
 
 @pytest.mark.asyncio

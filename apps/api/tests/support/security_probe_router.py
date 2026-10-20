@@ -54,15 +54,12 @@ async def probe_csrf_issue(binding_key: str, request: Request) -> JSONResponse:
         return JSONResponse(status_code=503, content={"detail": "unavailable"})
     issued = await csrf.issue(binding_key=binding_key, now=datetime.now(tz=UTC))
     response = JSONResponse({"ok": True})
-    response.set_cookie(
-        key=_csrf.cookie_name,
-        value=issued.token,
-        httponly=False,
-        secure=not settings.allow_insecure_cookies,
-        samesite="strict",
-        path="/api/v1",
+    csrf.attach_token_to_response(
+        response,
+        token=issued.token,
+        binding_key=binding_key,
+        settings=settings,
     )
-    response.headers[_csrf.header_name] = issued.token
     return response
 
 

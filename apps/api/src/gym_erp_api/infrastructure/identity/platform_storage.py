@@ -12,6 +12,9 @@ from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
 from gym_erp_api.infrastructure.mongo.mongo_rate_limit_repository import (
     HTTP_RATE_LIMIT_COLLECTION,
 )
+from gym_erp_api.modules.identity.infrastructure.mongo.mongo_platform_operator_eligibility_repository import (  # noqa: E501
+    PLATFORM_OPERATOR_ELIGIBILITIES_COLLECTION,
+)
 from gym_erp_api.modules.identity.infrastructure.mongo.platform_auth_continuation_mappers import (
     PLATFORM_AUTH_CONTINUATIONS_COLLECTION,
 )
@@ -36,6 +39,7 @@ async def ensure_platform_identity_storage_indexes(databases: MongoDatabases) ->
         identities=platform["user_identities"],
         credentials=platform["user_credentials"],
         sessions=platform["auth_sessions"],
+        operator_eligibilities=platform[PLATFORM_OPERATOR_ELIGIBILITIES_COLLECTION],
     )
     await ensure_platform_mfa_indexes(
         totp=platform[PLATFORM_MFA_TOTP_COLLECTION],
