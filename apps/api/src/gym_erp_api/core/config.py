@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,11 +45,33 @@ class Settings(BaseSettings):
         alias="PLATFORM_MFA_ENCRYPTION_REQUIRED",
     )
 
+    trusted_proxy_ips: str = Field(default="127.0.0.1", alias="TRUSTED_PROXY_IPS")
+    rate_limit_fail_closed: bool = Field(default=True, alias="RATE_LIMIT_FAIL_CLOSED")
+    allow_insecure_cookies: bool = Field(default=True, alias="ALLOW_INSECURE_COOKIES")
+    require_https_env: bool | None = Field(default=None, alias="REQUIRE_HTTPS")
+
+    @property
+    def https_required(self) -> bool:
+        if self.require_https_env is not None:
+            return self.require_https_env
+        return self.app_env.strip().lower() == "production"
+
     @property
     def require_platform_mfa_encryption_key(self) -> bool:
         if self.platform_mfa_encryption_required is not None:
             return self.platform_mfa_encryption_required
         return self.app_env.strip().lower() == "production"
+
+    @field_validator("app_env")
+    @classmethod
+    def normalize_app_env(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        allowed = frozenset({"development", "test", "staging", "production"})
+        if normalized not in allowed:
+            raise ValueError(
+                f"APP_ENV inválido: {value!r}. Valores permitidos: {sorted(allowed)!r}."
+            )
+        return normalized
 
     @model_validator(mode="after")
     def validate_mongodb_database_names(self) -> Settings:
@@ -69,6 +91,42 @@ class Settings(BaseSettings):
                 raise ValueError("Nombre de base MongoDB reservado.")
         object.__setattr__(self, "mongodb_platform_db", platform)
         object.__setattr__(self, "mongodb_operational_db", operational)
+        return self
+
+    @model_validator(mode="after")
+    def validate_production_http_security(self) -> Settings:
+        for origin in self.cors_origin_list:
+            stripped = origin.strip()
+            if stripped == "*" or "*" in stripped:
+                raise ValueError("CORS_ORIGINS no puede contener comodines con allow_credentials.")
+
+        if self.app_env != "production":
+            return self
+
+        if self.allow_insecure_cookies:
+            raise ValueError(
+                "ALLOW_INSECURE_COOKIES no puede estar activo cuando APP_ENV=production."
+            )
+        if self.require_https_env is False:
+            raise ValueError("REQUIRE_HTTPS no puede ser false en production.")
+        if not self.rate_limit_fail_closed:
+            raise ValueError("RATE_LIMIT_FAIL_CLOSED debe ser true en production.")
+        if self.platform_mfa_encryption_required is False:
+            raise ValueError("PLATFORM_MFA_ENCRYPTION_REQUIRED no puede ser false en production.")
+        if not self.trusted_proxy_ips.strip():
+            raise ValueError("TRUSTED_PROXY_IPS debe configurarse explícitamente en production.")
+
+        from urllib.parse import urlparse
+
+        for origin in self.cors_origin_list:
+            parsed = urlparse(origin)
+            host = (parsed.hostname or "").lower()
+            if parsed.scheme != "https":
+                raise ValueError("CORS_ORIGINS en production debe usar https://.")
+            if host in {"localhost", "127.0.0.1"} or host.endswith(".local"):
+                raise ValueError(
+                    "CORS_ORIGINS en production no puede apuntar a localhost ni hosts .local."
+                )
         return self
 
     @model_validator(mode="after")

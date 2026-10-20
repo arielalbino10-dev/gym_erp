@@ -9,13 +9,6 @@ from gym_erp_api.main import create_app
 
 
 @pytest.fixture
-def app_no_mongo(monkeypatch):
-    monkeypatch.delenv("MONGODB_URI", raising=False)
-    settings = Settings(app_env="test", mongodb_uri=None)
-    return create_app(settings=settings)
-
-
-@pytest.fixture
 def app_empty_mongo_uri(monkeypatch):
     monkeypatch.delenv("MONGODB_URI", raising=False)
     settings = Settings(app_env="test", mongodb_uri=SecretStr(""))

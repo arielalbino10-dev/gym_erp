@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
+from gym_erp_api.infrastructure.mongo.http_security_index_specs import (
+    ensure_http_security_indexes,
+)
+from gym_erp_api.infrastructure.mongo.mongo_csrf_token_repository import (
+    HTTP_CSRF_TOKENS_COLLECTION,
+)
 from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
+from gym_erp_api.infrastructure.mongo.mongo_rate_limit_repository import (
+    HTTP_RATE_LIMIT_COLLECTION,
+)
 from gym_erp_api.modules.identity.infrastructure.mongo.platform_auth_continuation_mappers import (
     PLATFORM_AUTH_CONTINUATIONS_COLLECTION,
 )
@@ -36,4 +45,8 @@ async def ensure_platform_identity_storage_indexes(databases: MongoDatabases) ->
     )
     await ensure_platform_auth_continuation_indexes(
         continuations=platform[PLATFORM_AUTH_CONTINUATIONS_COLLECTION],
+    )
+    await ensure_http_security_indexes(
+        rate_limits=platform[HTTP_RATE_LIMIT_COLLECTION],
+        csrf_tokens=platform[HTTP_CSRF_TOKENS_COLLECTION],
     )

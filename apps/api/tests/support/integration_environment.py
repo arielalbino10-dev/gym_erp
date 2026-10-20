@@ -31,6 +31,7 @@ IDENTITY_MFA_TOTP_PREFIX = "gym_erp_id_mfa_totp_"
 IDENTITY_MFA_CHALLENGES_PREFIX = "gym_erp_id_mfa_chal_"
 IDENTITY_MFA_STEPS_PREFIX = "gym_erp_id_mfa_step_"
 IDENTITY_MFA_AUTHZ_PREFIX = "gym_erp_id_mfa_authz_"
+HTTP_SECURITY_RATE_LIMIT_PREFIX = "gym_erp_http_rl_"
 EXPECTED_PLATFORM_DB = "gym_platform_test"
 
 FORBIDDEN_PRIVILEGED_ROLES = frozenset(
@@ -204,6 +205,10 @@ def generate_identity_mfa_steps_collection_name() -> str:
 
 def generate_identity_mfa_authz_collection_name() -> str:
     return f"{IDENTITY_MFA_AUTHZ_PREFIX}{secrets.token_hex(8)}"
+
+
+def generate_http_security_rate_limit_collection_name() -> str:
+    return f"{HTTP_SECURITY_RATE_LIMIT_PREFIX}{secrets.token_hex(8)}"
 
 
 def assert_ephemeral_collection_safe_for_teardown(

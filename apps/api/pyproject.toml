@@ -41,6 +41,7 @@ markers = [
     "organization_create_organization: CreateOrganizationHandler transaccional (H1-D.3.3.4)",
     "identity_persistence: persistencia identity/credenciales/sesiones en gym_platform_test (H2-B.3)",
     "identity_mfa: MFA TOTP platform en gym_platform_test (H2-B.5)",
+    "http_security: rate limit / CSRF HTTP contra gym_platform_test (H2-B.7.1.1)",
 ]
 
 [tool.ruff]

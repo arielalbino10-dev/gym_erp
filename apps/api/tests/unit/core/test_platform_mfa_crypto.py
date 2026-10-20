@@ -13,13 +13,26 @@ from gym_erp_api.core.platform_mfa_crypto import (
 from gym_erp_api.modules.identity.application.errors import PlatformMfaConfigurationError
 
 
+def _production_settings(**kwargs) -> Settings:
+    key_b64 = base64.b64encode(os.urandom(32)).decode()
+    defaults = dict(
+        app_env="production",
+        mongodb_uri=None,
+        allow_insecure_cookies=False,
+        require_https_env=True,
+        rate_limit_fail_closed=True,
+        trusted_proxy_ips="10.0.0.1",
+        cors_origins="https://app.example.com",
+        platform_mfa_encryption_required=True,
+        platform_mfa_encryption_key=SecretStr(key_b64),
+    )
+    defaults.update(kwargs)
+    return Settings(**defaults)
+
+
 def test_rejects_missing_key_when_required():
     with pytest.raises(PlatformMfaConfigurationError):
-        Settings(
-            app_env="production",
-            mongodb_uri=None,
-            platform_mfa_encryption_required=True,
-        )
+        _production_settings(platform_mfa_encryption_key=None)
 
 
 def test_rejects_invalid_base64():
@@ -54,11 +67,7 @@ def test_accepts_valid_key_in_test_env():
 
 def test_production_rejects_test_key():
     with pytest.raises(PlatformMfaConfigurationError):
-        Settings(
-            app_env="production",
-            mongodb_uri=None,
-            platform_mfa_encryption_key=SecretStr(known_test_mfa_key_base64()),
-        )
+        _production_settings(platform_mfa_encryption_key=SecretStr(known_test_mfa_key_base64()))
 
 
 def test_test_key_detector():
