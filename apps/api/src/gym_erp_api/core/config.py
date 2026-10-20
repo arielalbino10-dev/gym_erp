@@ -31,6 +31,26 @@ class Settings(BaseSettings):
         alias="CORS_ORIGINS",
     )
 
+    platform_mfa_encryption_key: SecretStr | None = Field(
+        default=None,
+        alias="MFA_PLATFORM_ENCRYPTION_KEY",
+    )
+    platform_mfa_encryption_key_version: int = Field(
+        default=1,
+        ge=1,
+        alias="MFA_PLATFORM_ENCRYPTION_KEY_VERSION",
+    )
+    platform_mfa_encryption_required: bool | None = Field(
+        default=None,
+        alias="PLATFORM_MFA_ENCRYPTION_REQUIRED",
+    )
+
+    @property
+    def require_platform_mfa_encryption_key(self) -> bool:
+        if self.platform_mfa_encryption_required is not None:
+            return self.platform_mfa_encryption_required
+        return self.app_env.strip().lower() == "production"
+
     @model_validator(mode="after")
     def validate_mongodb_database_names(self) -> Settings:
         platform = self.mongodb_platform_db.strip()
@@ -49,6 +69,14 @@ class Settings(BaseSettings):
                 raise ValueError("Nombre de base MongoDB reservado.")
         object.__setattr__(self, "mongodb_platform_db", platform)
         object.__setattr__(self, "mongodb_operational_db", operational)
+        return self
+
+    @model_validator(mode="after")
+    def validate_platform_mfa_key_when_required(self) -> Settings:
+        from gym_erp_api.core.platform_mfa_crypto import resolve_platform_mfa_aes256_key
+
+        if self.require_platform_mfa_encryption_key or self.platform_mfa_encryption_key is not None:
+            resolve_platform_mfa_aes256_key(self)
         return self
 
     @property

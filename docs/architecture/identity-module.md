@@ -89,3 +89,16 @@ Casos de uso: `BeginPlatformTotpEnrollmentUseCase`, `ConfirmPlatformTotpEnrollme
 ## Fuera de alcance (H2-B.5)
 
 Login/logout HTTP, cookies, RBAC, TenantContext, endpoints HTTP, usuarios root reales.
+
+## Preparación HTTP (H2-B.6)
+
+- **Config:** `MFA_PLATFORM_ENCRYPTION_KEY` (base64 → 32 bytes), `MFA_PLATFORM_ENCRYPTION_KEY_VERSION`,
+  fail-closed en `production` si falta clave o es la de pruebas.
+- **Composición:** `build_identity_infrastructure(MongoDatabases, Settings)` → repos + casos de uso
+  (solo colecciones `gym_platform`; operational intacto).
+- **Continuidad login platform:** `platform_auth_continuations` + token opaco (hash en Mongo);
+  casos de uso en `platform_auth_continuation.py` (no sustituye MFA ni sesión).
+- **Contratos HTTP:** `application/security/http_auth_contracts.py` y
+  [http-auth-security-strategy.md](../architecture/http-auth-security-strategy.md).
+
+Sin endpoints de autenticación ni cookies en runtime.

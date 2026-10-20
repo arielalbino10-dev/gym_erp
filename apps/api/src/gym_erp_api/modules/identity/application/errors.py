@@ -25,6 +25,14 @@ class PlatformMfaVerificationFailedError(IdentityApplicationError):
     """Código TOTP, desafío o enrolamiento inválido (mensaje genérico)."""
 
 
+class PlatformMfaConfigurationError(IdentityApplicationError):
+    """Cifrado MFA platform no configurado o inválido (fail-closed)."""
+
+
+class PlatformAuthContinuationError(IdentityApplicationError):
+    """Intento de autenticación platform inválido o expirado (mensaje genérico)."""
+
+
 class SessionResolutionFailedError(IdentityApplicationError):
     """Token de sesión inválido, expirado, revocado o identidad no usable."""
 
