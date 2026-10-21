@@ -49,12 +49,19 @@ def register_http_security_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(InvalidOriginError)
-    @app.exception_handler(CsrfValidationError)
-    @app.exception_handler(CsrfContextRequiredError)
     @app.exception_handler(HttpsRequiredError)
     async def _forbidden(_: Request, exc: HttpSecurityError) -> JSONResponse:
         _logger.info("http_security_forbidden", extra={"reason": type(exc).__name__})
         return JSONResponse(status_code=403, content={"detail": exc.public_message})
+
+    @app.exception_handler(CsrfValidationError)
+    @app.exception_handler(CsrfContextRequiredError)
+    async def _csrf_forbidden(_: Request, exc: HttpSecurityError) -> JSONResponse:
+        _logger.info("http_security_forbidden", extra={"reason": type(exc).__name__})
+        return JSONResponse(
+            status_code=403,
+            content={"detail": exc.public_message, "code": "csrf_invalid"},
+        )
 
     @app.exception_handler(GymNotAuthenticatedError)
     async def _gym_unauth(_: Request, exc: HttpSecurityError) -> JSONResponse:
@@ -82,8 +89,14 @@ def register_http_security_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(IdentityInfrastructureUnavailableError)
     @app.exception_handler(AccessInfrastructureUnavailableError)
     async def _unavailable(_: Request, exc: HttpSecurityError) -> JSONResponse:
-        _logger.warning("http_security_unavailable", extra={"reason": type(exc).__name__})
-        return JSONResponse(status_code=503, content={"detail": exc.public_message})
+        _logger.warning(
+            "http_security_unavailable: %s",
+            type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=503,
+            content={"detail": exc.public_message},
+        )
 
     @app.exception_handler(AuthenticationFailedError)
     @app.exception_handler(PlatformMfaRequiredError)

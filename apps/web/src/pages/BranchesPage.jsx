@@ -1,6 +1,15 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BranchDetailModal from "../components/branches/BranchDetailModal.jsx";
 import BranchesGrid from "../components/branches/BranchesGrid.jsx";
+import CreateBranchForm from "../components/branches/CreateBranchForm.jsx";
+import { useGymAuth } from "../app/providers/GymAuthProvider.jsx";
+import {
+  canCreateBranchesFromSession,
+  createGymBranch,
+  listGymBranches,
+  mapApiBranchToUi,
+} from "../api/gymBranchesApi.js";
+import { GymApiError } from "../api/gymHttpClient.js";
 import Card from "../components/ui/Card.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import ListToolbar from "../components/ui/ListToolbar.jsx";
@@ -10,10 +19,9 @@ import {
   BRANCHES_PAGE_SIZE_OPTIONS,
   BRANCH_STATUS,
   BRANCH_STATUS_FILTER_OPTIONS,
-  DEMO_BRANCH_CATALOG,
-  countDemoMembersByBranchId,
+  branchStatusBadgeVariant,
+  branchStatusLabel,
 } from "../demo/branches.demo.js";
-import { DEMO_MEMBERS } from "../demo/members.demo.js";
 import { usePaginatedListState } from "../hooks/usePaginatedListState.js";
 
 function filterBranch(item, { query, filters }) {
@@ -39,34 +47,120 @@ const listOptions = {
   },
   defaultSortField: "name",
   defaultSortDir: "asc",
-  defaultPageSize: 4,
+  defaultPageSize: 6,
 };
 
 export default function BranchesPage() {
+  const {
+    session,
+    operationalGeneration,
+    beginOperationalRequest,
+    isOperationalResponseStale,
+  } = useGymAuth();
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState(null);
   const [detailBranch, setDetailBranch] = useState(null);
-  const memberCounts = useMemo(() => countDemoMembersByBranchId(DEMO_MEMBERS), []);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const loadSeqRef = useRef(0);
+
+  const canCreate = canCreateBranchesFromSession(session);
+
+  useEffect(() => {
+    setBranches([]);
+    setLoadError(null);
+    setDetailBranch(null);
+    setSuccessMessage(null);
+  }, [session?.active_tenant_id, operationalGeneration]);
+
+  const reload = useCallback(async () => {
+    const loadSeq = ++loadSeqRef.current;
+    const { generation, signal } = beginOperationalRequest();
+    setLoadError(null);
+    setLoading(true);
+    try {
+      const rows = await listGymBranches({ signal });
+      if (loadSeq !== loadSeqRef.current || isOperationalResponseStale(generation)) {
+        return;
+      }
+      setBranches(rows.map(mapApiBranchToUi));
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      if (loadSeq !== loadSeqRef.current || isOperationalResponseStale(generation)) {
+        return;
+      }
+      setLoadError(err instanceof GymApiError ? err.message : "No se pudieron cargar sucursales.");
+      setBranches([]);
+    } finally {
+      if (loadSeq === loadSeqRef.current && !isOperationalResponseStale(generation)) {
+        setLoading(false);
+      }
+    }
+  }, [beginOperationalRequest, isOperationalResponseStale]);
+
+  useEffect(() => {
+    reload();
+  }, [reload, session?.active_tenant_id, operationalGeneration]);
 
   const summary = useMemo(() => {
-    const active = DEMO_BRANCH_CATALOG.filter((b) => b.status === BRANCH_STATUS.ACTIVE).length;
-    const inactive = DEMO_BRANCH_CATALOG.length - active;
-    return { total: DEMO_BRANCH_CATALOG.length, active, inactive };
-  }, []);
+    const active = branches.filter((b) => b.status === BRANCH_STATUS.ACTIVE).length;
+    return { total: branches.length, active, inactive: branches.length - active };
+  }, [branches]);
 
-  const list = usePaginatedListState(DEMO_BRANCH_CATALOG, listOptions);
+  const list = usePaginatedListState(branches, listOptions);
 
-  const detailMemberCount = detailBranch ? memberCounts[detailBranch.branchId] ?? 0 : 0;
+  async function handleCreate(payload) {
+    const { generation, signal } = beginOperationalRequest();
+    setCreateError(null);
+    setSuccessMessage(null);
+    setCreateBusy(true);
+    try {
+      await createGymBranch(payload, { signal });
+      if (isOperationalResponseStale(generation)) {
+        return;
+      }
+      setSuccessMessage("Sucursal creada correctamente.");
+      await reload();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      if (isOperationalResponseStale(generation)) {
+        return;
+      }
+      setCreateError(err instanceof GymApiError ? err.message : "No se pudo crear la sucursal.");
+    } finally {
+      if (!isOperationalResponseStale(generation)) {
+        setCreateBusy(false);
+      }
+    }
+  }
 
   return (
     <div className="demo-module-page branches-page">
       <PageHeader
-        title="Sucursales (demostración)"
-        description="Catálogo ficticio multi-sucursal alineado con ADR-0009. Sin altas, bajas ni permisos reales."
+        title="Sucursales"
+        description={
+          session?.tenant_display_name
+            ? `Gimnasio activo: ${session.tenant_display_name}. Datos desde MongoDB operational.`
+            : "Listado operativo de sucursales autorizadas."
+        }
       />
 
-      <Card title="Resumen del catálogo demo" className="branches-page__summary">
+      {successMessage ? (
+        <p className="branches-page__success" role="status">
+          {successMessage}
+        </p>
+      ) : null}
+
+      <Card title="Resumen" className="branches-page__summary">
         <ul className="branches-page__stats">
           <li>
-            <span>Total en catálogo</span>
+            <span>Total</span>
             <strong>{summary.total}</strong>
           </li>
           <li>
@@ -74,62 +168,85 @@ export default function BranchesPage() {
             <strong>{summary.active}</strong>
           </li>
           <li>
-            <span>Inactivas (ejemplo)</span>
+            <span>Otras</span>
             <strong>{summary.inactive}</strong>
           </li>
         </ul>
       </Card>
 
-      <Card title="Sucursales ficticias" className="demo-module-page__card">
-        <ListToolbar
-          searchId="branches-search"
-          searchLabel="Buscar por nombre o código"
-          searchPlaceholder="Centro Demo o SUC-CEN"
-          query={list.query}
-          onQueryChange={list.setQuery}
-          filters={[
-            {
-              id: "branches-filter-status",
-              label: "Estado",
-              value: list.filters.status ?? "",
-              onChange: (v) => list.setFilter("status", v),
-              options: BRANCH_STATUS_FILTER_OPTIONS,
-            },
-          ]}
-          totalCount={list.totalCount}
-        />
+      {canCreate ? (
+        <Card title="Nueva sucursal" className="demo-module-page__card">
+          <CreateBranchForm onSubmit={handleCreate} busy={createBusy} error={createError} />
+        </Card>
+      ) : (
+        <Card title="Alta de sucursales" className="demo-module-page__card">
+          <p>Su rol no incluye permiso para crear sucursales. El servidor rechazará intentos no autorizados.</p>
+        </Card>
+      )}
 
-        {list.totalCount === 0 ? (
-          <EmptyState title={list.hasActiveFilters ? "Sin coincidencias" : "Sin sucursales demo"}>
-            {list.hasActiveFilters ? (
-              <p>Ajuste la búsqueda o el filtro de estado.</p>
-            ) : (
-              <p>No hay sucursales en el catálogo de demostración.</p>
-            )}
+      <Card title="Sucursales del gimnasio" className="demo-module-page__card">
+        {loading ? (
+          <p>Cargando sucursales…</p>
+        ) : loadError ? (
+          <EmptyState title="Error al cargar">
+            <p>{loadError}</p>
           </EmptyState>
         ) : (
           <>
-            <BranchesGrid
-              branches={list.pageSlice}
-              memberCounts={memberCounts}
-              onViewDetail={setDetailBranch}
+            <ListToolbar
+              searchId="branches-search"
+              searchLabel="Buscar por nombre o código"
+              searchPlaceholder="Centro o código"
+              query={list.query}
+              onQueryChange={list.setQuery}
+              filters={[
+                {
+                  id: "branches-filter-status",
+                  label: "Estado",
+                  value: list.filters.status ?? "",
+                  onChange: (v) => list.setFilter("status", v),
+                  options: BRANCH_STATUS_FILTER_OPTIONS,
+                },
+              ]}
+              totalCount={list.totalCount}
             />
-            <Pagination
-              page={list.page}
-              pageCount={list.pageCount}
-              pageSize={list.pageSize}
-              pageSizeOptions={BRANCHES_PAGE_SIZE_OPTIONS}
-              onPageChange={list.setPage}
-              onPageSizeChange={list.setPageSize}
-            />
+
+            {list.totalCount === 0 ? (
+              <EmptyState title={list.hasActiveFilters ? "Sin coincidencias" : "Sin sucursales"}>
+                <p>
+                  {list.hasActiveFilters
+                    ? "Ajuste la búsqueda o el filtro."
+                    : "Aún no hay sucursales registradas para este gimnasio."}
+                </p>
+              </EmptyState>
+            ) : (
+              <>
+                <BranchesGrid
+                  branches={list.pageSlice}
+                  memberCounts={{}}
+                  showMemberCounts={false}
+                  onViewDetail={setDetailBranch}
+                />
+                <Pagination
+                  page={list.page}
+                  pageCount={list.pageCount}
+                  pageSize={list.pageSize}
+                  pageSizeOptions={BRANCHES_PAGE_SIZE_OPTIONS}
+                  onPageChange={list.setPage}
+                  onPageSizeChange={list.setPageSize}
+                />
+              </>
+            )}
           </>
         )}
       </Card>
 
       <BranchDetailModal
         branch={detailBranch}
-        memberCount={detailMemberCount}
+        memberCount={0}
         onClose={() => setDetailBranch(null)}
+        statusLabel={detailBranch ? branchStatusLabel(detailBranch.status) : ""}
+        statusVariant={detailBranch ? branchStatusBadgeVariant(detailBranch.status) : "demo"}
       />
     </div>
   );

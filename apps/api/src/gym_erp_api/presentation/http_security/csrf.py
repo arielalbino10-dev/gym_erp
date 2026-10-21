@@ -68,6 +68,29 @@ class CsrfProtectionService:
         )
         return IssuedCsrfToken(token=token, binding_key=binding_key)
 
+    async def ensure_for_request(
+        self,
+        request: Request,
+        *,
+        binding_key: str,
+        now: datetime,
+    ) -> IssuedCsrfToken:
+        """Reutiliza el token CSRF vigente del cliente; emite uno nuevo si falta o expiró."""
+        cookie_policy = csrf_cookie_policy_for_binding(binding_key)
+        cookie = request.cookies.get(cookie_policy.name, "").strip()
+        if cookie:
+            try:
+                token_hash = hash_csrf_token(cookie)
+            except CsrfValidationError:
+                token_hash = ""
+            if token_hash and await self._repository.validate_if_valid(
+                token_hash=token_hash,
+                binding_key=binding_key,
+                now=now,
+            ):
+                return IssuedCsrfToken(token=cookie, binding_key=binding_key)
+        return await self.issue(binding_key=binding_key, now=now)
+
     async def revoke_binding(self, *, binding_key: str) -> None:
         await self._repository.revoke_binding(binding_key=binding_key)
 

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
+from starlette.requests import Request
 
 from gym_erp_api.core.config import Settings
 from gym_erp_api.infrastructure.http.http_security_container import (
@@ -328,6 +329,42 @@ async def test_csrf_gym_and_platform_cookies_isolated():
 
 
 @pytest.mark.asyncio
+async def test_csrf_ensure_for_request_reuses_valid_cookie():
+    repo = InMemoryCsrfTokenRepository()
+    csrf = CsrfProtectionService(repository=repo)
+    now = datetime.now(tz=UTC)
+    binding = "session:gym:session-id-1"
+    issued = await csrf.issue(binding_key=binding, now=now)
+
+    def _request_with_cookie(token: str) -> Request:
+        cookie_header = f"{GYM_CSRF_COOKIE.name}={token}".encode()
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"cookie", cookie_header)],
+            "query_string": b"",
+        }
+        return Request(scope)
+
+    reused = await csrf.ensure_for_request(
+        _request_with_cookie(issued.token),
+        binding_key=binding,
+        now=now,
+    )
+    assert reused.token == issued.token
+
+    rotated = await csrf.issue(binding_key=binding, now=now)
+    assert rotated.token != issued.token
+    fresh = await csrf.ensure_for_request(
+        _request_with_cookie(issued.token),
+        binding_key=binding,
+        now=now,
+    )
+    assert fresh.token != issued.token
+
+
+@pytest.mark.asyncio
 async def test_csrf_token_not_valid_for_other_binding():
     settings = _settings()
     app = _probe_app(settings, with_security=True)
@@ -344,6 +381,20 @@ async def test_csrf_token_not_valid_for_other_binding():
             cookies={_CSRF.cookie_name: token},
         )
         assert wrong.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_csrf_validation_response_includes_code():
+    settings = _settings()
+    app = _probe_app(settings, with_security=True)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/internal/security-probe/csrf/binding-key",
+            headers={"Origin": _DEFAULT_ORIGIN},
+        )
+    assert response.status_code == 403
+    assert response.json().get("code") == "csrf_invalid"
 
 
 @pytest.mark.asyncio

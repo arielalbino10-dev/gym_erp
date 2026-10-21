@@ -1,12 +1,4 @@
-const DEFAULT_BASE = "/api/v1";
-
-function apiBaseUrl() {
-  const fromEnv = import.meta.env.VITE_API_BASE_URL;
-  if (fromEnv && String(fromEnv).trim()) {
-    return String(fromEnv).replace(/\/$/, "");
-  }
-  return DEFAULT_BASE;
-}
+import { apiBaseUrl } from "./gymHttpClient.js";
 
 /**
  * @returns {Promise<{ ok: boolean, status: number, body: object | null }>}

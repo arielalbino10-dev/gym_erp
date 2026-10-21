@@ -150,7 +150,11 @@ async def gym_session(request: Request) -> JSONResponse:
             session_kind=SessionKind.GYM.value,
             session_id=resolved.session.session_id,
         )
-        issued = await csrf.issue(binding_key=binding, now=utc_now())
+        issued = await csrf.ensure_for_request(
+            request,
+            binding_key=binding,
+            now=utc_now(),
+        )
         csrf.attach_token_to_response(
             response,
             token=issued.token,

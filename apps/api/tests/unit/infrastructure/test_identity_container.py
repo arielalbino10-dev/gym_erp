@@ -42,8 +42,15 @@ def test_build_identity_infrastructure_wires_platform_repos():
     assert infra.mfa_encryptor.key_version == settings.platform_mfa_encryption_key_version
 
 
-def test_build_identity_fails_without_mfa_key_when_optional_resolve():
-    settings = Settings(app_env="test", mongodb_uri=None)
+def test_build_identity_fails_without_mfa_key_when_optional_resolve(monkeypatch):
+    monkeypatch.delenv("MFA_PLATFORM_ENCRYPTION_KEY", raising=False)
+    monkeypatch.delenv("PLATFORM_MFA_ENCRYPTION_REQUIRED", raising=False)
+    settings = Settings(
+        app_env="test",
+        mongodb_uri=None,
+        platform_mfa_encryption_key=None,
+        _env_file=None,
+    )
     client = MagicMock()
     databases = MongoDatabases(client, settings)
     with pytest.raises(PlatformMfaConfigurationError):

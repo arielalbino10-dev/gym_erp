@@ -9,8 +9,9 @@ navegación por secciones y tokens visuales (datos demostrativos pendientes).
 npm install
 ```
 
-Opcional: `VITE_API_BASE_URL` en `.env` (ver raíz `.env.example`). En desarrollo, Vite
-proxifica `/api` hacia `http://127.0.0.1:8000`.
+Opcional: `VITE_API_BASE_URL` en `.env` (ver raíz `.env.example`). En desarrollo se recomienda
+el proxy de Vite (`/api/v1` → `http://127.0.0.1:8000`). Flujo gym login/sucursales:
+[docs/development/local-react-gym-integration.md](../../docs/development/local-react-gym-integration.md).
 
 ## Scripts
 
