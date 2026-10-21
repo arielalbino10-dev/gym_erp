@@ -6,6 +6,8 @@ from typing import Any
 
 from gym_erp_api.modules.access.domain.tenant_membership import TenantMembership
 
+TENANT_MEMBERSHIPS_COLLECTION = "tenant_memberships"
+
 
 def membership_to_document(membership: TenantMembership) -> dict[str, Any]:
     doc: dict[str, Any] = {

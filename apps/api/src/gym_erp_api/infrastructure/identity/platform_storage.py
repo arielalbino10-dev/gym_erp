@@ -12,6 +12,12 @@ from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
 from gym_erp_api.infrastructure.mongo.mongo_rate_limit_repository import (
     HTTP_RATE_LIMIT_COLLECTION,
 )
+from gym_erp_api.modules.access.infrastructure.mongo.access_index_specs import (
+    ensure_access_platform_indexes,
+)
+from gym_erp_api.modules.access.infrastructure.mongo.membership_document_mapper import (
+    TENANT_MEMBERSHIPS_COLLECTION,
+)
 from gym_erp_api.modules.identity.infrastructure.mongo.mongo_platform_operator_eligibility_repository import (  # noqa: E501
     PLATFORM_OPERATOR_ELIGIBILITIES_COLLECTION,
 )
@@ -53,4 +59,7 @@ async def ensure_platform_identity_storage_indexes(databases: MongoDatabases) ->
     await ensure_http_security_indexes(
         rate_limits=platform[HTTP_RATE_LIMIT_COLLECTION],
         csrf_tokens=platform[HTTP_CSRF_TOKENS_COLLECTION],
+    )
+    await ensure_access_platform_indexes(
+        memberships=platform[TENANT_MEMBERSHIPS_COLLECTION],
     )

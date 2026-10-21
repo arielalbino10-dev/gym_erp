@@ -11,6 +11,10 @@ from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
 from gym_erp_api.core.config import Settings
+from gym_erp_api.infrastructure.access.access_container import (
+    AccessInfrastructure,
+    build_access_infrastructure,
+)
 from gym_erp_api.infrastructure.http.http_security_container import HttpSecurityInfrastructure
 from gym_erp_api.infrastructure.identity.identity_container import IdentityInfrastructure
 from gym_erp_api.infrastructure.mongo.mongo_csrf_token_repository import MongoCsrfTokenRepository
@@ -60,7 +64,15 @@ def build_auth_http_identity_stack(
     mongo_platform_mfa_session_authorization_repository: (
         MongoPlatformMfaSessionAuthorizationRepository
     ),
-) -> tuple[MongoDatabases, IdentityInfrastructure, Any, HttpSecurityInfrastructure]:
+    access_memberships_collection: Any,
+    access_tenants_collection: Any,
+) -> tuple[
+    MongoDatabases,
+    IdentityInfrastructure,
+    Any,
+    HttpSecurityInfrastructure,
+    AccessInfrastructure,
+]:
     mongo_client = mongo_identity_repository._collection.database.client  # noqa: SLF001
     databases = MongoDatabases(mongo_client, settings)
     db = mongo_client[EXPECTED_PLATFORM_DB]
@@ -89,7 +101,13 @@ def build_auth_http_identity_stack(
         mfa_authz=mongo_platform_mfa_session_authorization_repository._collection,  # noqa: SLF001
         operator_eligibility=operator_eligibility,
     )
-    return databases, infra, operator_eligibility, http_security
+    access = build_access_infrastructure(
+        databases,
+        session_repository=infra.auth_session_repository,
+        memberships_collection=access_memberships_collection,
+        tenants_collection=access_tenants_collection,
+    )
+    return databases, infra, operator_eligibility, http_security, access
 
 
 @asynccontextmanager
@@ -99,11 +117,13 @@ async def mounted_auth_http_client(
     identity_infrastructure: IdentityInfrastructure | None,
     databases: MongoDatabases | None = None,
     http_security: HttpSecurityInfrastructure | None = None,
+    access_infrastructure: AccessInfrastructure | None = None,
 ) -> AsyncIterator[AsyncClient]:
     app = create_app(settings=settings)
     if http_security is None and databases is not None:
         raise ValueError("Proveer http_security efímero desde build_auth_http_identity_stack.")
     app.state.identity_infrastructure = identity_infrastructure
+    app.state.access_infrastructure = access_infrastructure
     if http_security is not None:
         app.state.http_rate_limiter = http_security.rate_limiter
         app.state.csrf_protection = http_security.csrf_protection

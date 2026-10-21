@@ -98,4 +98,5 @@ class ResolveSessionUseCase:
             session_kind=session.session_kind,
             credential_version=session.credential_version,
             active_tenant_id=session.active_tenant_id,
+            gym_membership_authz_epoch=session.gym_membership_authz_epoch,
         )

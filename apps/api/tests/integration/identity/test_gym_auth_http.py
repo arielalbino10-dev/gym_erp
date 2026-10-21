@@ -74,7 +74,7 @@ async def test_gym_login_session_logout_http(
         password=_PASSWORD,
         moment=moment,
     )
-    databases, infra, _elig, http_sec = build_auth_http_identity_stack(
+    databases, infra, _elig, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -83,12 +83,15 @@ async def test_gym_login_session_logout_http(
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         login = await http.post(
             "/api/v1/gym/auth/login",
@@ -127,7 +130,7 @@ async def test_gym_login_wrong_password(integration_settings, auth_http_repos):
         password=_PASSWORD,
         moment=moment,
     )
-    databases, infra, _, http_sec = build_auth_http_identity_stack(
+    databases, infra, _, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -136,12 +139,15 @@ async def test_gym_login_wrong_password(integration_settings, auth_http_repos):
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         response = await http.post(
             "/api/v1/gym/auth/login",
@@ -167,7 +173,7 @@ async def test_gym_login_disabled_account(
         moment=moment,
         disabled=True,
     )
-    databases, infra, _, http_sec = build_auth_http_identity_stack(
+    databases, infra, _, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -176,12 +182,15 @@ async def test_gym_login_disabled_account(
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         response = await http.post(
             "/api/v1/gym/auth/login",
@@ -205,7 +214,7 @@ async def test_gym_logout_requires_csrf(
         password=_PASSWORD,
         moment=moment,
     )
-    databases, infra, _, http_sec = build_auth_http_identity_stack(
+    databases, infra, _, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -214,12 +223,15 @@ async def test_gym_logout_requires_csrf(
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         await http.post(
             "/api/v1/gym/auth/login",
@@ -262,7 +274,7 @@ async def test_gym_login_rate_limit_by_account(
         password=_PASSWORD,
         moment=moment,
     )
-    databases, infra, _, http_sec = build_auth_http_identity_stack(
+    databases, infra, _, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -271,12 +283,15 @@ async def test_gym_login_rate_limit_by_account(
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         last_status = 401
         for _ in range(11):
@@ -303,7 +318,7 @@ async def test_gym_login_succeeds_with_revoked_session_cookie(
         password=_PASSWORD,
         moment=moment,
     )
-    databases, infra, _, http_sec = build_auth_http_identity_stack(
+    databases, infra, _, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -312,12 +327,15 @@ async def test_gym_login_succeeds_with_revoked_session_cookie(
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         login = await http.post(
             "/api/v1/gym/auth/login",
@@ -351,7 +369,7 @@ async def test_gym_logout_idempotent_when_session_already_revoked(
         password=_PASSWORD,
         moment=moment,
     )
-    databases, infra, _, http_sec = build_auth_http_identity_stack(
+    databases, infra, _, http_sec, access = build_auth_http_identity_stack(
         settings=settings,
         mongo_identity_repository=auth_http_repos["identity"],
         mongo_credential_repository=auth_http_repos["credential"],
@@ -360,12 +378,15 @@ async def test_gym_logout_idempotent_when_session_already_revoked(
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
     async with mounted_auth_http_client(
         settings=settings,
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         login = await http.post(
             "/api/v1/gym/auth/login",

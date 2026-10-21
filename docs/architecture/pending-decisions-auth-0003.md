@@ -1,7 +1,7 @@
 # Decisiones pendientes — autenticación (ADR-0003)
 
-Registro H1-A.2. **ADR-0003 permanece Proposed.** Nada en este documento aprueba
-autenticación ni autoriza implementación de login, sesiones o endpoints protegidos.
+Registro H1-A.2, actualizado H2-C.2. **ADR-0003 está Accepted** (2026-10-19); login HTTP
+gym/platform implementado (H2-B.7.2). Este documento conserva ítems de producto aún abiertos.
 
 ## Relación con multi-tenant (ya aprobado en ADR-0002 / H1-A.2)
 
@@ -15,7 +15,7 @@ Estas piezas **no** dependen de ADR-0003 para documentarse, pero **sí** para c�
 
 | ID | Tema | Estado | Impacto en tenant / API |
 |----|------|--------|-------------------------|
-| P-01 | Aprobación global del ADR-0003 | **Pendiente** | Bloquea auth en producción |
+| P-01 | Aprobación global del ADR-0003 | **Accepted** | Auth MVP web en progreso |
 | P-02 | TTL access y refresh | **Pendiente** | Duración de sesión y revalidación |
 | P-03 | Access token: JWT vs opaco | **Pendiente** | Claims mínimos; no permisos en token |
 | P-04 | SameSite Strict vs Lax; CSRF refresh/logout | **Pendiente** | Cookies web ERP |

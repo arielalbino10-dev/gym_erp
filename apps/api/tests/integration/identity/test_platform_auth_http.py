@@ -101,6 +101,8 @@ def _stack(settings, auth_http_repos):
         mongo_platform_mfa_challenge_repository=auth_http_repos["challenge"],
         mongo_platform_mfa_step_repository=auth_http_repos["step"],
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
+        access_memberships_collection=auth_http_repos["memberships"],
+        access_tenants_collection=auth_http_repos["tenants"],
     )
 
 
@@ -111,7 +113,7 @@ async def test_platform_mfa_http_full_flow(
     settings = integration_settings_with_mfa(integration_settings)
     moment = datetime.now(tz=UTC)
     email = "http.platform.mfa@example.test"
-    databases, infra, elig, http_sec = _stack(settings, auth_http_repos)
+    databases, infra, elig, http_sec, access = _stack(settings, auth_http_repos)
     identity, secret = await _seed_platform_operator(
         auth_http_repos=auth_http_repos,
         infra=infra,
@@ -125,6 +127,7 @@ async def test_platform_mfa_http_full_flow(
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         assert (await http.get("/api/v1/platform/auth/session")).status_code == 401
 
@@ -182,7 +185,7 @@ async def test_platform_login_blocked_without_eligibility(
     settings = integration_settings_with_mfa(integration_settings)
     moment = datetime.now(tz=UTC)
     email = "http.gym.only.platform@example.test"
-    databases, infra, elig, http_sec = _stack(settings, auth_http_repos)
+    databases, infra, elig, http_sec, access = _stack(settings, auth_http_repos)
     await _seed_platform_operator(
         auth_http_repos=auth_http_repos,
         infra=infra,
@@ -196,6 +199,7 @@ async def test_platform_login_blocked_without_eligibility(
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         login = await http.post(
             "/api/v1/platform/auth/login",
@@ -216,7 +220,7 @@ async def test_gym_and_platform_sessions_csrf_isolated(
     moment = datetime.now(tz=UTC)
     gym_email = "http.dual.gym@example.test"
     plat_email = "http.dual.platform@example.test"
-    databases, infra, elig, http_sec = _stack(settings, auth_http_repos)
+    databases, infra, elig, http_sec, access = _stack(settings, auth_http_repos)
     await _seed_gym_user_simple(auth_http_repos, gym_email, moment)
     _, plat_secret = await _seed_platform_operator(
         auth_http_repos=auth_http_repos,
@@ -231,6 +235,7 @@ async def test_gym_and_platform_sessions_csrf_isolated(
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         await http.post(
             "/api/v1/gym/auth/login",
@@ -289,7 +294,7 @@ async def test_platform_session_denied_after_eligibility_revoked(
     settings = integration_settings_with_mfa(integration_settings)
     moment = datetime.now(tz=UTC)
     email = "http.platform.revoke.elig@example.test"
-    databases, infra, elig, http_sec = _stack(settings, auth_http_repos)
+    databases, infra, elig, http_sec, access = _stack(settings, auth_http_repos)
     identity, secret = await _seed_platform_operator(
         auth_http_repos=auth_http_repos,
         infra=infra,
@@ -303,6 +308,7 @@ async def test_platform_session_denied_after_eligibility_revoked(
         identity_infrastructure=infra,
         databases=databases,
         http_security=http_sec,
+        access_infrastructure=access,
     ) as http:
         await http.post(
             "/api/v1/platform/auth/login",

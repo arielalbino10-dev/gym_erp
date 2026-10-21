@@ -4,8 +4,9 @@ Documentación del módulo **`gym_erp_api.modules.organization`**: dominio Tenan
 persistencia platform/operational, políticas internas, transacciones multi-base e
 idempotencia para el alta interna **CreateOrganization**.
 
-**Estado:** implementado en backend (sin endpoints HTTP). Autenticación y RBAC de plataforma
-permanecen en [ADR-0003](../adr/0003-autenticacion-sesiones.md) (**Proposed**).
+**Estado:** implementado en backend (sin endpoints HTTP organization). Autenticación HTTP en
+[ADR-0003](../adr/0003-autenticacion-sesiones.md) (**Accepted**); RBAC gym en módulo
+[access](access-module.md) (H2-C.2+).
 
 Referencias: [ADR-0008](../adr/0008-dos-bases-mongodb-platform-operational.md),
 [ADR-0009](../adr/0009-modelo-organizacional-mvp.md),

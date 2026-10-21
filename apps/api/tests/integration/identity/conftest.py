@@ -11,6 +11,9 @@ import pytest_asyncio
 from pymongo import AsyncMongoClient
 
 from gym_erp_api.infrastructure.mongo.database import mongo_client_options
+from gym_erp_api.modules.access.infrastructure.mongo.access_index_specs import (
+    ensure_access_platform_indexes,
+)
 from gym_erp_api.modules.identity.infrastructure.mongo.mongo_auth_session_repository import (
     MongoAuthSessionRepository,
 )
@@ -33,6 +36,7 @@ from gym_erp_api.modules.identity.infrastructure.mongo.platform_mfa_index_specs 
     ensure_platform_mfa_indexes,
 )
 from tests.support.integration_environment import (
+    ACCESS_TENANT_MEMBERSHIPS_PREFIX,
     EXPECTED_PLATFORM_DB,
     IDENTITY_AUTH_SESSIONS_PREFIX,
     IDENTITY_MFA_AUTHZ_PREFIX,
@@ -41,7 +45,9 @@ from tests.support.integration_environment import (
     IDENTITY_MFA_TOTP_PREFIX,
     IDENTITY_USER_CREDENTIALS_PREFIX,
     IDENTITY_USER_IDENTITIES_PREFIX,
+    ORG_PLATFORM_COLLECTION_PREFIX,
     assert_organization_ephemeral_collection_safe_for_teardown,
+    generate_access_tenant_memberships_collection_name,
     generate_identity_auth_sessions_collection_name,
     generate_identity_mfa_authz_collection_name,
     generate_identity_mfa_challenges_collection_name,
@@ -49,6 +55,7 @@ from tests.support.integration_environment import (
     generate_identity_mfa_totp_collection_name,
     generate_identity_user_credentials_collection_name,
     generate_identity_user_identities_collection_name,
+    generate_org_platform_collection_name,
     validate_integration_environment,
     verify_integration_mongodb_identity,
 )
@@ -70,6 +77,8 @@ class IdentityIntegrationState:
     mfa_challenges_collection_name: str | None = None
     mfa_steps_collection_name: str | None = None
     mfa_authz_collection_name: str | None = None
+    auth_http_memberships_collection_name: str | None = None
+    auth_http_tenants_collection_name: str | None = None
     teardown_enabled: bool = False
     extra: dict = field(default_factory=dict)
 
@@ -308,6 +317,63 @@ async def identity_mfa_authz_collection(
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def auth_http_memberships_collection(
+    identity_mongo_client: Any,
+    identity_integration_state: IdentityIntegrationState,
+) -> Any:
+    if not identity_integration_state.security_verified:
+        pytest.fail("Controles de seguridad no verificados.")
+    name = generate_access_tenant_memberships_collection_name()
+    identity_integration_state.auth_http_memberships_collection_name = name
+    db = identity_mongo_client[EXPECTED_PLATFORM_DB]
+    await _ensure_ephemeral_collection(db, name)
+    collection = db[name]
+    await ensure_access_platform_indexes(memberships=collection)
+    yield collection
+    if not identity_integration_state.teardown_enabled:
+        return
+    registered = identity_integration_state.auth_http_memberships_collection_name
+    if not registered:
+        return
+    assert_organization_ephemeral_collection_safe_for_teardown(
+        collection.name,
+        expected_name=registered,
+        database_name=collection.database.name,
+        collection_prefix=ACCESS_TENANT_MEMBERSHIPS_PREFIX,
+        expected_database=EXPECTED_PLATFORM_DB,
+    )
+    await collection.drop()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def auth_http_tenants_collection(
+    identity_mongo_client: Any,
+    identity_integration_state: IdentityIntegrationState,
+) -> Any:
+    if not identity_integration_state.security_verified:
+        pytest.fail("Controles de seguridad no verificados.")
+    name = generate_org_platform_collection_name()
+    identity_integration_state.auth_http_tenants_collection_name = name
+    db = identity_mongo_client[EXPECTED_PLATFORM_DB]
+    await _ensure_ephemeral_collection(db, name)
+    collection = db[name]
+    yield collection
+    if not identity_integration_state.teardown_enabled:
+        return
+    registered = identity_integration_state.auth_http_tenants_collection_name
+    if not registered:
+        return
+    assert_organization_ephemeral_collection_safe_for_teardown(
+        collection.name,
+        expected_name=registered,
+        database_name=collection.database.name,
+        collection_prefix=ORG_PLATFORM_COLLECTION_PREFIX,
+        expected_database=EXPECTED_PLATFORM_DB,
+    )
+    await collection.drop()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def identity_platform_indexes(
     identity_user_identities_collection: Any,
     identity_user_credentials_collection: Any,
@@ -346,6 +412,8 @@ async def reset_identity_ephemeral_collections(
     identity_mfa_steps_collection: Any,
     identity_mfa_authz_collection: Any,
     identity_mfa_indexes: None,
+    auth_http_memberships_collection: Any,
+    auth_http_tenants_collection: Any,
 ) -> Any:
     await identity_user_identities_collection.delete_many({})
     await identity_user_credentials_collection.delete_many({})
@@ -354,6 +422,8 @@ async def reset_identity_ephemeral_collections(
     await identity_mfa_challenges_collection.delete_many({})
     await identity_mfa_steps_collection.delete_many({})
     await identity_mfa_authz_collection.delete_many({})
+    await auth_http_memberships_collection.delete_many({})
+    await auth_http_tenants_collection.delete_many({})
     yield
     await identity_user_identities_collection.delete_many({})
     await identity_user_credentials_collection.delete_many({})
@@ -362,6 +432,8 @@ async def reset_identity_ephemeral_collections(
     await identity_mfa_challenges_collection.delete_many({})
     await identity_mfa_steps_collection.delete_many({})
     await identity_mfa_authz_collection.delete_many({})
+    await auth_http_memberships_collection.delete_many({})
+    await auth_http_tenants_collection.delete_many({})
 
 
 @pytest.fixture
@@ -373,6 +445,8 @@ def auth_http_repos(
     mongo_platform_mfa_challenge_repository,
     mongo_platform_mfa_step_repository,
     mongo_platform_mfa_session_authorization_repository,
+    auth_http_memberships_collection,
+    auth_http_tenants_collection,
 ):
     return {
         "identity": mongo_identity_repository,
@@ -382,6 +456,8 @@ def auth_http_repos(
         "challenge": mongo_platform_mfa_challenge_repository,
         "step": mongo_platform_mfa_step_repository,
         "authz": mongo_platform_mfa_session_authorization_repository,
+        "memberships": auth_http_memberships_collection,
+        "tenants": auth_http_tenants_collection,
     }
 
 

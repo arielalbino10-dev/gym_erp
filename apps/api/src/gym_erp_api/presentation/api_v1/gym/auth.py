@@ -1,10 +1,11 @@
-"""Auth HTTP gym (H2-B.7.2)."""
+"""Auth HTTP gym (H2-B.7.2 + H2-C.3 tenant)."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from gym_erp_api.modules.access.application.errors import MembershipAccessDeniedError
 from gym_erp_api.modules.identity.application.errors import (
     AuthenticationFailedError,
     SessionResolutionFailedError,
@@ -12,6 +13,11 @@ from gym_erp_api.modules.identity.application.errors import (
 )
 from gym_erp_api.modules.identity.domain.session_kind import SessionKind
 from gym_erp_api.presentation.auth.account_rate_limit import login_account_rate_limit_key
+from gym_erp_api.presentation.auth.gym_context import (
+    require_access_infrastructure,
+    require_resolved_gym_session,
+)
+from gym_erp_api.presentation.auth.gym_session_view import build_gym_session_response
 from gym_erp_api.presentation.auth.http_support import (
     attach_session_cookies_and_csrf,
     read_session_token_from_request,
@@ -22,11 +28,17 @@ from gym_erp_api.presentation.auth.login_security import (
     enforce_login_mutation_security,
     enforce_logout_mutation_security,
 )
-from gym_erp_api.presentation.auth.schemas import LoginRequest, SessionResponse
+from gym_erp_api.presentation.auth.schemas import (
+    GymMembershipItem,
+    GymMembershipsResponse,
+    LoginRequest,
+    SelectTenantRequest,
+)
 from gym_erp_api.presentation.http_security.client_ip import client_ip
 from gym_erp_api.presentation.http_security.cookies import clear_gym_session_cookie
 from gym_erp_api.presentation.http_security.csrf import csrf_binding_for_session
 from gym_erp_api.presentation.http_security.dependencies import (
+    enforce_cookie_session_mutation_security,
     get_app_settings,
     get_csrf_service,
     get_http_rate_limiter,
@@ -71,20 +83,66 @@ async def gym_login(body: LoginRequest, request: Request) -> JSONResponse:
     return response
 
 
+@router.get("/memberships")
+async def gym_memberships(request: Request) -> JSONResponse:
+    access = require_access_infrastructure(request)
+    resolved = await require_resolved_gym_session(request)
+    rows = await access.list_gym_memberships.execute(user_id=resolved.user_id)
+    payload = GymMembershipsResponse(
+        memberships=[
+            GymMembershipItem(
+                tenant_id=row.tenant_id,
+                membership_id=row.membership_id,
+                display_name=row.display_name,
+                gym_roles=sorted(row.gym_roles),
+            )
+            for row in rows
+        ]
+    )
+    return JSONResponse(content=payload.model_dump())
+
+
+@router.post("/select-tenant")
+async def gym_select_tenant(body: SelectTenantRequest, request: Request) -> JSONResponse:
+    access = require_access_infrastructure(request)
+    settings = get_app_settings(request)
+    resolved = await require_resolved_gym_session(request)
+    binding = csrf_binding_for_session(
+        session_kind=SessionKind.GYM.value,
+        session_id=resolved.session.session_id,
+    )
+    await enforce_cookie_session_mutation_security(request, csrf_binding_key=binding)
+    try:
+        updated = await access.select_gym_active_tenant.execute(
+            resolved=resolved,
+            tenant_id=body.tenant_id,
+        )
+    except MembershipAccessDeniedError:
+        return JSONResponse(status_code=403, content={"detail": "Acceso no permitido."})
+    response = JSONResponse(status_code=204, content=None)
+    csrf = get_csrf_service(request)
+    if csrf is not None:
+        await csrf.revoke_binding(binding_key=binding)
+        new_binding = csrf_binding_for_session(
+            session_kind=SessionKind.GYM.value,
+            session_id=updated.session.session_id,
+        )
+        issued = await csrf.issue(binding_key=new_binding, now=utc_now())
+        csrf.attach_token_to_response(
+            response,
+            token=issued.token,
+            binding_key=new_binding,
+            settings=settings,
+        )
+    return response
+
+
 @router.get("/session")
 async def gym_session(request: Request) -> JSONResponse:
     settings = get_app_settings(request)
-    infra = require_infra(request)
-    token = read_session_token_from_request(request, kind=SessionKind.GYM)
-    if not token:
-        return JSONResponse(status_code=401, content={"detail": "No autenticado."})
-    try:
-        resolved = await infra.resolve_session.execute(opaque_token=token, touch_activity=True)
-    except Exception:
-        return JSONResponse(status_code=401, content={"detail": "No autenticado."})
-    if resolved.session_kind is not SessionKind.GYM:
-        return JSONResponse(status_code=401, content={"detail": "No autenticado."})
-    body = SessionResponse(user_id=resolved.user_id, session_kind=SessionKind.GYM.value)
+    access = require_access_infrastructure(request)
+    resolved = await require_resolved_gym_session(request)
+    body = await build_gym_session_response(resolved=resolved, access=access)
     response = JSONResponse(content=body.model_dump())
     csrf = get_csrf_service(request)
     if csrf is not None:

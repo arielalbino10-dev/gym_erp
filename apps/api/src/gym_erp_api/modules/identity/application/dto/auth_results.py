@@ -36,3 +36,4 @@ class ResolvedSession:
     session_kind: SessionKind
     credential_version: int
     active_tenant_id: str | None
+    gym_membership_authz_epoch: int | None = None

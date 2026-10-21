@@ -37,3 +37,11 @@ class SessionRepository(Protocol):
         expected_last_seen_at: datetime,
     ) -> AuthSession:
         """Actualiza last_seen_at e idle_expires_at con concurrencia optimista."""
+
+    async def update_gym_tenant_selection(
+        self,
+        session: AuthSession,
+        *,
+        expected_last_seen_at: datetime,
+    ) -> AuthSession:
+        """Persiste active_tenant_id y gym_membership_authz_epoch (sesión gym, OCC)."""

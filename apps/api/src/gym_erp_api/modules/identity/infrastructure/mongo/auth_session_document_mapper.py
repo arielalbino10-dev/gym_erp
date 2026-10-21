@@ -28,6 +28,8 @@ def auth_session_to_document(session: AuthSession) -> dict[str, Any]:
     }
     if session.active_tenant_id is not None:
         doc["active_tenant_id"] = session.active_tenant_id
+    if session.gym_membership_authz_epoch is not None:
+        doc["gym_membership_authz_epoch"] = session.gym_membership_authz_epoch
     if session.revoked_at is not None:
         doc["revoked_at"] = session.revoked_at
         doc["revocation_reason"] = session.revocation_reason
@@ -39,6 +41,7 @@ def auth_session_from_document(raw: Mapping[str, Any]) -> AuthSession:
         revoked_raw = raw.get("revoked_at")
         revoked = parse_utc_datetime(revoked_raw, "revoked_at") if revoked_raw is not None else None
         tenant_raw = raw.get("active_tenant_id")
+        epoch_raw = raw.get("gym_membership_authz_epoch")
         return AuthSession(
             session_id=str(raw["session_id"]),
             token_hash=str(raw["token_hash"]),
@@ -50,6 +53,7 @@ def auth_session_from_document(raw: Mapping[str, Any]) -> AuthSession:
             last_seen_at=parse_utc_datetime(raw["last_seen_at"], "last_seen_at"),
             credential_version=int(raw["credential_version"]),
             active_tenant_id=str(tenant_raw) if tenant_raw is not None else None,
+            gym_membership_authz_epoch=int(epoch_raw) if epoch_raw is not None else None,
             revoked_at=revoked,
             revocation_reason=str(raw["revocation_reason"]) if revoked is not None else None,
         )

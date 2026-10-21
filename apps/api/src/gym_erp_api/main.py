@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gym_erp_api.core.config import Settings, get_settings
+from gym_erp_api.infrastructure.access.access_container import build_access_infrastructure
 from gym_erp_api.infrastructure.http.http_security_container import (
     build_http_security_infrastructure,
 )
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
     app.state.mongo_client = client
     app.state.mongo_databases = MongoDatabases(client, settings) if client is not None else None
     app.state.identity_infrastructure = None
+    app.state.access_infrastructure = None
     app.state.http_rate_limiter = None
     app.state.csrf_protection = None
     if app.state.mongo_databases is not None:
@@ -36,12 +38,18 @@ async def lifespan(app: FastAPI):
         app.state.http_rate_limiter = http_security.rate_limiter
         app.state.csrf_protection = http_security.csrf_protection
         try:
-            app.state.identity_infrastructure = build_identity_infrastructure(
+            identity = build_identity_infrastructure(
                 app.state.mongo_databases,
                 settings,
             )
+            app.state.identity_infrastructure = identity
+            app.state.access_infrastructure = build_access_infrastructure(
+                app.state.mongo_databases,
+                session_repository=identity.auth_session_repository,
+            )
         except PlatformMfaConfigurationError:
             app.state.identity_infrastructure = None
+            app.state.access_infrastructure = None
     try:
         yield
     finally:

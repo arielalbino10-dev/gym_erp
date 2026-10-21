@@ -182,3 +182,48 @@ class MongoAuthSessionRepository:
         if restored is None:
             raise SessionNotFoundError("Sesión no encontrada tras actualización.")
         return restored
+
+    async def update_gym_tenant_selection(
+        self,
+        auth_session: AuthSession,
+        *,
+        expected_last_seen_at: datetime,
+        session: object | None = None,
+    ) -> AuthSession:
+        sid = require_user_uuid_v4(auth_session.session_id, "session_id")
+        update_fields: dict[str, Any] = {
+            "last_seen_at": auth_session.last_seen_at,
+        }
+        if auth_session.active_tenant_id is not None:
+            update_fields["active_tenant_id"] = auth_session.active_tenant_id
+        else:
+            update_fields["active_tenant_id"] = None
+        if auth_session.gym_membership_authz_epoch is not None:
+            update_fields["gym_membership_authz_epoch"] = auth_session.gym_membership_authz_epoch
+        else:
+            update_fields["gym_membership_authz_epoch"] = None
+        try:
+            result = await self._collection.update_one(
+                {
+                    "$and": [
+                        {"_id": sid},
+                        {"session_kind": SessionKind.GYM.value},
+                        {"last_seen_at": expected_last_seen_at},
+                        _session_not_revoked_clause(),
+                    ]
+                },
+                {"$set": update_fields},
+                **self._session_kw(session),
+            )
+            if result.matched_count == 0:
+                raise SessionUpdateConflictError("Conflicto al seleccionar tenant gym.")
+        except SessionUpdateConflictError:
+            raise
+        except OperationFailure as exc:
+            raise IdentityStorageError("No se pudo actualizar sesión.") from exc
+        except PyMongoError as exc:
+            raise IdentityStorageError("No se pudo actualizar sesión.") from exc
+        restored = await self.get_by_id(sid, session=session)
+        if restored is None:
+            raise SessionNotFoundError("Sesión no encontrada tras selección de tenant.")
+        return restored

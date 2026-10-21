@@ -7,6 +7,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from gym_erp_api.modules.access.application.errors import AccessApplicationError
 from gym_erp_api.modules.identity.application.errors import (
     AuthenticationFailedError,
     IdentityApplicationError,
@@ -17,8 +18,12 @@ from gym_erp_api.modules.identity.application.errors import (
     SessionRevocationFailedError,
 )
 from gym_erp_api.presentation.http_security.errors import (
+    AccessInfrastructureUnavailableError,
     CsrfContextRequiredError,
     CsrfValidationError,
+    GymAccessDeniedError,
+    GymNotAuthenticatedError,
+    GymTenantNotSelectedError,
     HttpSecurityError,
     HttpsRequiredError,
     IdentityInfrastructureUnavailableError,
@@ -51,8 +56,31 @@ def register_http_security_exception_handlers(app: FastAPI) -> None:
         _logger.info("http_security_forbidden", extra={"reason": type(exc).__name__})
         return JSONResponse(status_code=403, content={"detail": exc.public_message})
 
+    @app.exception_handler(GymNotAuthenticatedError)
+    async def _gym_unauth(_: Request, exc: HttpSecurityError) -> JSONResponse:
+        return JSONResponse(status_code=401, content={"detail": exc.public_message})
+
+    @app.exception_handler(GymTenantNotSelectedError)
+    async def _gym_no_tenant(_: Request, exc: HttpSecurityError) -> JSONResponse:
+        return JSONResponse(
+            status_code=403,
+            content={"detail": exc.public_message, "code": "tenant_not_selected"},
+        )
+
+    @app.exception_handler(GymAccessDeniedError)
+    @app.exception_handler(AccessApplicationError)
+    async def _gym_access(_: Request, exc: Exception) -> JSONResponse:
+        _logger.info("gym_access_denied", extra={"reason": type(exc).__name__})
+        message = getattr(exc, "args", ("Acceso no permitido.",))[0]
+        if isinstance(message, str) and message:
+            detail = message
+        else:
+            detail = "Acceso no permitido."
+        return JSONResponse(status_code=403, content={"detail": detail})
+
     @app.exception_handler(RateLimitBackendError)
     @app.exception_handler(IdentityInfrastructureUnavailableError)
+    @app.exception_handler(AccessInfrastructureUnavailableError)
     async def _unavailable(_: Request, exc: HttpSecurityError) -> JSONResponse:
         _logger.warning("http_security_unavailable", extra={"reason": type(exc).__name__})
         return JSONResponse(status_code=503, content={"detail": exc.public_message})

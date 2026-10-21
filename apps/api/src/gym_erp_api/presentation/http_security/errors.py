@@ -36,6 +36,22 @@ class RateLimitBackendError(HttpSecurityError):
     public_message = "Servicio temporalmente no disponible."
 
 
+class AccessInfrastructureUnavailableError(HttpSecurityError):
+    public_message = "Servicio temporalmente no disponible."
+
+
+class GymNotAuthenticatedError(HttpSecurityError):
+    public_message = "No autenticado."
+
+
+class GymAccessDeniedError(HttpSecurityError):
+    public_message = "Acceso no permitido."
+
+
+class GymTenantNotSelectedError(HttpSecurityError):
+    public_message = "No hay gimnasio seleccionado."
+
+
 class IdentityInfrastructureUnavailableError(HttpSecurityError):
     public_message = "Servicio temporalmente no disponible."
 

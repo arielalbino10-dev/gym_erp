@@ -34,6 +34,7 @@ class AuthSession:
     last_seen_at: datetime
     credential_version: int
     active_tenant_id: str | None = None
+    gym_membership_authz_epoch: int | None = None
     revoked_at: datetime | None = None
     revocation_reason: str | None = None
 
@@ -42,6 +43,13 @@ class AuthSession:
         require_user_uuid_v4(self.user_id)
         if self.active_tenant_id is not None:
             require_user_uuid_v4(self.active_tenant_id, "active_tenant_id")
+        if self.gym_membership_authz_epoch is not None:
+            if self.gym_membership_authz_epoch < 0:
+                raise InvalidSessionFieldError("gym_membership_authz_epoch inválido.")
+            if self.active_tenant_id is None:
+                raise InvalidSessionFieldError(
+                    "gym_membership_authz_epoch requiere active_tenant_id."
+                )
         if (
             not isinstance(self.token_hash, str)
             or len(self.token_hash) != _TOKEN_HASH_HEX_LEN
@@ -115,6 +123,26 @@ class AuthSession:
             self,
             revoked_at=moment,
             revocation_reason=cleaned,
+        )
+
+    def with_gym_tenant_selection(
+        self,
+        *,
+        active_tenant_id: str,
+        membership_authz_epoch: int,
+        now: datetime | None = None,
+    ) -> AuthSession:
+        if self.session_kind is not SessionKind.GYM:
+            raise InvalidSessionFieldError("Selección de tenant solo aplica a sesiones gym.")
+        tid = require_user_uuid_v4(active_tenant_id, "active_tenant_id")
+        if membership_authz_epoch < 0:
+            raise InvalidSessionFieldError("membership_authz_epoch inválido.")
+        moment = _ensure_utc(now) if now is not None else utc_now_ms()
+        return replace(
+            self,
+            active_tenant_id=tid,
+            gym_membership_authz_epoch=membership_authz_epoch,
+            last_seen_at=moment,
         )
 
     def touch_activity(
