@@ -7,6 +7,9 @@ from typing import Any
 
 from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
 from gym_erp_api.infrastructure.mongo.scoped_repository import TenantScopedRepository
+from gym_erp_api.modules.access.application.authorization.gym_authorization_service import (
+    GymAuthorizationService,
+)
 from gym_erp_api.modules.access.application.services.tenant_context_factory import (
     TenantContextFactory,
 )
@@ -53,6 +56,7 @@ class AccessInfrastructure:
     branch_scope_validator: OrganizationBranchScopeValidator
     list_gym_memberships: ListGymMembershipsForUserUseCase
     select_gym_active_tenant: SelectGymActiveTenantUseCase
+    gym_authorization_service: GymAuthorizationService
 
 
 def build_access_infrastructure(
@@ -88,6 +92,7 @@ def build_access_infrastructure(
         branch_repository_for_tenant=branch_repository_for_tenant,
     )
     factory = TenantContextFactory(memberships=memberships, tenants=tenants)
+    authz_service = GymAuthorizationService()
     return AccessInfrastructure(
         membership_repository=memberships,
         tenant_repository=tenants,
@@ -101,4 +106,5 @@ def build_access_infrastructure(
             sessions=session_repository,
             tenant_context_factory=factory,
         ),
+        gym_authorization_service=authz_service,
     )

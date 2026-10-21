@@ -31,3 +31,7 @@ class MembershipUpdateConflictError(AccessApplicationError):
 
 class BranchScopeValidationError(AccessApplicationError):
     """Sucursal fuera del tenant o inexistente para el alcance de membresía."""
+
+
+class PermissionDeniedError(AccessApplicationError):
+    """Permiso o alcance insuficiente para la acción solicitada."""

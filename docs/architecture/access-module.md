@@ -43,7 +43,7 @@ Distinto de **socio** (`member`) en gym_operational y de **platform_operator_eli
 
 **No** incluye `root_admin` ni `platform_admin` (futuro `platform_role_assignments`).
 
-Permisos atómicos y motor RBAC: **H2-C.4+**.
+Permisos atómicos y motor RBAC: **H2-C.4** (`GymPermission`, matriz rol→permiso, `GymAuthorizationService`).
 
 ## TenantContextFactory
 
@@ -89,6 +89,22 @@ Entrada: `TrustedGymAuthContext(user_id, selected_tenant_id)` — identidad ya v
 Implementación: `MongoTenantMembershipRepository`, índices en `access_index_specs.py`.
 Actualizaciones con **OCC por `authz_epoch`** y `replace_one` (documento completo) para evitar
 campos obsoletos en Mongo. Tests de integración usan prefijo `gym_erp_acc_mem_`.
+
+## H2-C.4 — Permisos operativos
+
+Catálogo cerrado (`GYM_PERMISSION_CATALOG_VERSION`): `branches.read|create|update|deactivate`, `staff.read`, `tenant.roles.manage`.
+
+| Rol | Permisos MVP |
+|-----|----------------|
+| `gym_owner` | Todos los del catálogo |
+| `gym_admin` | Sin `branches.deactivate` |
+| `branch_admin` | `branches.read`, `branches.update`, `staff.read` (alcance explícito) |
+
+- `GymAuthorizationService`: permisos desde roles persistidos + `TenantMemberAccess` para sucursal.
+- Alcance explícito: permisos branch-scoped exigen `branch_id` en la dependencia HTTP.
+- `RoleGrantPolicy`: anti-escalada para futura gestión de roles (sin API pública).
+- HTTP: `require_gym_permission(GymPermission)` sobre `require_gym_tenant_context`.
+- Probe de tests: `/gym/internal/security-probe/gym-permission/{permission}` (cookie path gym; no producción).
 
 ## H2-C.3 (dependencias)
 

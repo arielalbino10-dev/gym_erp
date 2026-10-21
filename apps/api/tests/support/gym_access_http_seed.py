@@ -47,13 +47,16 @@ async def seed_active_membership(
     tenant_id: str,
     moment: datetime,
     gym_roles: frozenset[GymRole] | None = None,
+    branch_scope_mode: BranchScopeMode = BranchScopeMode.ALL_BRANCHES,
+    allowed_branch_ids: frozenset[str] | None = None,
 ) -> TenantMembership:
     roles = gym_roles or frozenset({GymRole.GYM_OWNER})
     membership = TenantMembership.create_active(
         user_id=user_id,
         tenant_id=tenant_id,
         gym_roles=roles,
-        branch_scope_mode=BranchScopeMode.ALL_BRANCHES,
+        branch_scope_mode=branch_scope_mode,
+        allowed_branch_ids=allowed_branch_ids,
         now=moment,
     )
     repo = MongoTenantMembershipRepository(memberships_collection)

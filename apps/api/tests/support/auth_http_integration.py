@@ -118,8 +118,19 @@ async def mounted_auth_http_client(
     databases: MongoDatabases | None = None,
     http_security: HttpSecurityInfrastructure | None = None,
     access_infrastructure: AccessInfrastructure | None = None,
+    include_security_probe: bool = False,
 ) -> AsyncIterator[AsyncClient]:
     app = create_app(settings=settings)
+    if include_security_probe:
+        from tests.support.security_probe_router import (
+            gym_auth_probe_router,
+        )
+        from tests.support.security_probe_router import (
+            router as security_probe_router,
+        )
+
+        app.include_router(security_probe_router, prefix="/api/v1")
+        app.include_router(gym_auth_probe_router, prefix="/api/v1")
     if http_security is None and databases is not None:
         raise ValueError("Proveer http_security efímero desde build_auth_http_identity_stack.")
     app.state.identity_infrastructure = identity_infrastructure

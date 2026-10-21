@@ -4,12 +4,19 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
+from gym_erp_api.modules.access.domain.gym_permission import GymPermission
 from gym_erp_api.modules.identity.application.security.http_auth_contracts import (
     CsrfPolicy,
 )
+from gym_erp_api.presentation.auth.gym_context import (
+    GymRequestContext,
+    require_access_infrastructure,
+    require_gym_tenant_context,
+)
+from gym_erp_api.presentation.auth.gym_permissions import require_gym_permission
 from gym_erp_api.presentation.http_security.cookies import (
     clear_gym_session_cookie,
     clear_platform_session_cookie,
@@ -25,6 +32,10 @@ from gym_erp_api.presentation.http_security.dependencies import (
 )
 
 router = APIRouter(prefix="/internal/security-probe", tags=["security-probe"])
+gym_auth_probe_router = APIRouter(
+    prefix="/gym/internal/security-probe",
+    tags=["security-probe-gym-auth"],
+)
 _csrf = CsrfPolicy()
 
 
@@ -104,3 +115,40 @@ async def probe_cookie_clear(request: Request) -> JSONResponse:
 async def probe_cookie_session_missing_csrf(request: Request) -> JSONResponse:
     await enforce_cookie_session_mutation_security(request, csrf_binding_key="")
     return JSONResponse({"ok": True})
+
+
+@gym_auth_probe_router.get("/gym-permission/{permission_value}")
+async def probe_gym_permission_path(
+    permission_value: str,
+    request: Request,
+    branch_id: str | None = Query(default=None),
+) -> JSONResponse:
+    """Solo tests: valida permiso sin exponer CRUD operational."""
+    permission = GymPermission(permission_value)
+    from gym_erp_api.presentation.http_security.errors import AccessInfrastructureUnavailableError
+
+    try:
+        gym_ctx = await require_gym_tenant_context(request)
+        access = require_access_infrastructure(request)
+    except AccessInfrastructureUnavailableError:
+        return JSONResponse(status_code=503, content={"detail": "unavailable"})
+    auth = access.gym_authorization_service.trusted_context_from_resolved(gym_ctx.tenant)
+    access.gym_authorization_service.require_permission(
+        auth=auth,
+        permission=permission,
+        branch_id=branch_id,
+    )
+    return JSONResponse(
+        {
+            "ok": True,
+            "tenant_id": gym_ctx.tenant.context.tenant_id,
+            "permission": permission.value,
+        }
+    )
+
+
+@gym_auth_probe_router.get("/gym-permission-dep/branches.read")
+async def probe_gym_permission_dep(
+    gym_ctx: GymRequestContext = Depends(require_gym_permission(GymPermission.BRANCHES_READ)),
+) -> JSONResponse:
+    return JSONResponse({"ok": True, "tenant_id": gym_ctx.tenant.context.tenant_id})
