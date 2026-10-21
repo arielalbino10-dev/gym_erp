@@ -52,6 +52,14 @@ class GymTenantNotSelectedError(HttpSecurityError):
     public_message = "No hay gimnasio seleccionado."
 
 
+class PlatformNotAuthenticatedError(HttpSecurityError):
+    public_message = "No autenticado."
+
+
+class PlatformAccessDeniedError(HttpSecurityError):
+    public_message = "Acceso no permitido."
+
+
 class IdentityInfrastructureUnavailableError(HttpSecurityError):
     public_message = "Servicio temporalmente no disponible."
 

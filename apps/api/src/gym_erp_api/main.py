@@ -14,6 +14,9 @@ from gym_erp_api.infrastructure.identity.platform_storage import (
 )
 from gym_erp_api.infrastructure.mongo.database import create_mongo_client
 from gym_erp_api.infrastructure.mongo.mongo_databases import MongoDatabases
+from gym_erp_api.infrastructure.platform_admin.platform_admin_container import (
+    build_platform_admin_infrastructure,
+)
 from gym_erp_api.modules.identity.application.errors import PlatformMfaConfigurationError
 from gym_erp_api.presentation.api_v1.router import api_v1_router
 from gym_erp_api.presentation.http_security.handlers import (
@@ -30,6 +33,7 @@ async def lifespan(app: FastAPI):
     app.state.mongo_databases = MongoDatabases(client, settings) if client is not None else None
     app.state.identity_infrastructure = None
     app.state.access_infrastructure = None
+    app.state.platform_admin_infrastructure = None
     app.state.http_rate_limiter = None
     app.state.csrf_protection = None
     if app.state.mongo_databases is not None:
@@ -47,9 +51,13 @@ async def lifespan(app: FastAPI):
                 app.state.mongo_databases,
                 session_repository=identity.auth_session_repository,
             )
+            app.state.platform_admin_infrastructure = build_platform_admin_infrastructure(
+                app.state.mongo_databases.platform,
+            )
         except PlatformMfaConfigurationError:
             app.state.identity_infrastructure = None
             app.state.access_infrastructure = None
+            app.state.platform_admin_infrastructure = None
     try:
         yield
     finally:

@@ -37,6 +37,16 @@ from gym_erp_api.modules.identity.infrastructure.mongo.platform_mfa_mappers impo
     PLATFORM_MFA_STEPS_COLLECTION,
     PLATFORM_MFA_TOTP_COLLECTION,
 )
+from gym_erp_api.modules.platform_admin.infrastructure.mongo.platform_admin_index_specs import (
+    ensure_platform_audit_event_indexes,
+    ensure_platform_role_assignment_indexes,
+)
+from gym_erp_api.modules.platform_admin.infrastructure.mongo.platform_audit_mapper import (
+    PLATFORM_AUDIT_EVENTS_COLLECTION,
+)
+from gym_erp_api.modules.platform_admin.infrastructure.mongo.platform_role_assignment_mapper import (  # noqa: E501
+    PLATFORM_ROLE_ASSIGNMENTS_COLLECTION,
+)
 
 
 async def ensure_platform_identity_storage_indexes(databases: MongoDatabases) -> None:
@@ -62,4 +72,10 @@ async def ensure_platform_identity_storage_indexes(databases: MongoDatabases) ->
     )
     await ensure_access_platform_indexes(
         memberships=platform[TENANT_MEMBERSHIPS_COLLECTION],
+    )
+    await ensure_platform_role_assignment_indexes(
+        platform[PLATFORM_ROLE_ASSIGNMENTS_COLLECTION],
+    )
+    await ensure_platform_audit_event_indexes(
+        platform[PLATFORM_AUDIT_EVENTS_COLLECTION],
     )

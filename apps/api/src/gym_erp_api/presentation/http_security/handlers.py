@@ -28,6 +28,8 @@ from gym_erp_api.presentation.http_security.errors import (
     HttpsRequiredError,
     IdentityInfrastructureUnavailableError,
     InvalidOriginError,
+    PlatformAccessDeniedError,
+    PlatformNotAuthenticatedError,
     RateLimitBackendError,
     RateLimitExceededError,
 )
@@ -64,8 +66,13 @@ def register_http_security_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(GymNotAuthenticatedError)
+    @app.exception_handler(PlatformNotAuthenticatedError)
     async def _gym_unauth(_: Request, exc: HttpSecurityError) -> JSONResponse:
         return JSONResponse(status_code=401, content={"detail": exc.public_message})
+
+    @app.exception_handler(PlatformAccessDeniedError)
+    async def _platform_access(_: Request, exc: HttpSecurityError) -> JSONResponse:
+        return JSONResponse(status_code=403, content={"detail": exc.public_message})
 
     @app.exception_handler(GymTenantNotSelectedError)
     async def _gym_no_tenant(_: Request, exc: HttpSecurityError) -> JSONResponse:
