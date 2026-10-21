@@ -25,6 +25,14 @@ class BranchAccessDeniedApplicationError(OrganizationApplicationError):
     """La sucursal está fuera del alcance permitido por el contexto."""
 
 
+class BranchNotFoundApplicationError(OrganizationApplicationError):
+    """Sucursal inexistente o no visible en el tenant/alcance autorizado."""
+
+
+class BranchDuplicateApplicationError(OrganizationApplicationError):
+    """Conflicto de unicidad al crear sucursal."""
+
+
 class IdempotencyKeyRequiredError(OrganizationApplicationError):
     """Falta idempotency_key o no cumple el formato permitido."""
 

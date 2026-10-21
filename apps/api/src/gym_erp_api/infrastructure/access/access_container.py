@@ -33,6 +33,15 @@ from gym_erp_api.modules.organization.application.bootstrap_context import (
     CREATE_ORGANIZATION_BOOTSTRAP_MEMBERSHIP_ID,
     CREATE_ORGANIZATION_BOOTSTRAP_USER_ID,
 )
+from gym_erp_api.modules.organization.application.use_cases.create_authorized_branch import (
+    CreateAuthorizedBranchUseCase,
+)
+from gym_erp_api.modules.organization.application.use_cases.get_authorized_branch import (
+    GetAuthorizedBranchUseCase,
+)
+from gym_erp_api.modules.organization.application.use_cases.list_authorized_branches import (
+    ListAuthorizedBranchesUseCase,
+)
 from gym_erp_api.modules.organization.infrastructure.mongo.branch_document_mapper import (
     BRANCHES_COLLECTION,
 )
@@ -49,6 +58,15 @@ from gym_erp_api.shared_kernel.tenant_context import TenantContext
 
 
 @dataclass(frozen=True, slots=True)
+class _TenantContextBranchRepositoryFactory:
+    _collection: Any
+
+    def for_context(self, context: TenantContext) -> OperationalBranchRepository:
+        scoped = TenantScopedRepository(self._collection, context, branch_scoped=False)
+        return OperationalBranchRepository(scoped)
+
+
+@dataclass(frozen=True, slots=True)
 class AccessInfrastructure:
     membership_repository: MongoTenantMembershipRepository
     tenant_repository: PlatformTenantRepository
@@ -57,6 +75,9 @@ class AccessInfrastructure:
     list_gym_memberships: ListGymMembershipsForUserUseCase
     select_gym_active_tenant: SelectGymActiveTenantUseCase
     gym_authorization_service: GymAuthorizationService
+    create_authorized_branch: CreateAuthorizedBranchUseCase
+    list_authorized_branches: ListAuthorizedBranchesUseCase
+    get_authorized_branch: GetAuthorizedBranchUseCase
 
 
 def build_access_infrastructure(
@@ -65,6 +86,7 @@ def build_access_infrastructure(
     session_repository: SessionRepository,
     memberships_collection: Any | None = None,
     tenants_collection: Any | None = None,
+    branches_collection: Any | None = None,
 ) -> AccessInfrastructure:
     platform = databases.platform
     operational = databases.operational
@@ -76,7 +98,10 @@ def build_access_infrastructure(
     tenants = PlatformTenantRepository(
         tenants_collection if tenants_collection is not None else platform[TENANTS_COLLECTION]
     )
-    branches_collection = operational[BRANCHES_COLLECTION]
+    branches_coll = (
+        branches_collection if branches_collection is not None else operational[BRANCHES_COLLECTION]
+    )
+    branch_repo_factory = _TenantContextBranchRepositoryFactory(_collection=branches_coll)
 
     def branch_repository_for_tenant(tenant_id: str) -> OperationalBranchRepository:
         ctx = TenantContext(
@@ -85,7 +110,7 @@ def build_access_infrastructure(
             membership_id=CREATE_ORGANIZATION_BOOTSTRAP_MEMBERSHIP_ID,
             allowed_branch_ids=None,
         )
-        scoped = TenantScopedRepository(branches_collection, ctx, branch_scoped=False)
+        scoped = TenantScopedRepository(branches_coll, ctx, branch_scoped=False)
         return OperationalBranchRepository(scoped)
 
     branch_validator = OrganizationBranchScopeValidator(
@@ -107,4 +132,16 @@ def build_access_infrastructure(
             tenant_context_factory=factory,
         ),
         gym_authorization_service=authz_service,
+        create_authorized_branch=CreateAuthorizedBranchUseCase(
+            authorization=authz_service,
+            branch_repository_factory=branch_repo_factory,
+        ),
+        list_authorized_branches=ListAuthorizedBranchesUseCase(
+            authorization=authz_service,
+            branch_repository_factory=branch_repo_factory,
+        ),
+        get_authorized_branch=GetAuthorizedBranchUseCase(
+            authorization=authz_service,
+            branch_repository_factory=branch_repo_factory,
+        ),
     )

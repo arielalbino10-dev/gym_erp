@@ -49,6 +49,7 @@ def _stack(settings, auth_http_repos):
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
 
 

@@ -44,6 +44,18 @@ def test_owner_all_branches_without_branch_id():
     _SVC.require_permission(auth=auth, permission=GymPermission.BRANCHES_READ)
 
 
+def test_branch_admin_explicit_allows_list_operation():
+    auth = _auth(
+        roles=frozenset({GymRole.BRANCH_ADMIN}),
+        allowed=frozenset({BRANCH_X_ID}),
+    )
+    _SVC.require_permission(
+        auth=auth,
+        permission=GymPermission.BRANCHES_READ,
+        list_operation=True,
+    )
+
+
 def test_branch_admin_explicit_requires_branch_id():
     auth = _auth(
         roles=frozenset({GymRole.BRANCH_ADMIN}),

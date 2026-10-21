@@ -66,6 +66,7 @@ def build_auth_http_identity_stack(
     ),
     access_memberships_collection: Any,
     access_tenants_collection: Any,
+    operational_branches_collection: Any,
 ) -> tuple[
     MongoDatabases,
     IdentityInfrastructure,
@@ -106,6 +107,7 @@ def build_auth_http_identity_stack(
         session_repository=infra.auth_session_repository,
         memberships_collection=access_memberships_collection,
         tenants_collection=access_tenants_collection,
+        branches_collection=operational_branches_collection,
     )
     return databases, infra, operator_eligibility, http_security, access
 

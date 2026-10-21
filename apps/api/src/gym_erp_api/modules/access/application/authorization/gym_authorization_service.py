@@ -48,6 +48,7 @@ class GymAuthorizationService:
         permission: GymPermission,
         branch_id: str | None = None,
         requested_tenant_id: str | None = None,
+        list_operation: bool = False,
     ) -> None:
         if requested_tenant_id is not None:
             member = TenantMemberAccess.bind(
@@ -69,7 +70,8 @@ class GymAuthorizationService:
             except BranchAccessDeniedApplicationError as exc:
                 raise PermissionDeniedError("Sucursal fuera de alcance.") from exc
         elif (
-            auth.allowed_branch_ids is not None
+            not list_operation
+            and auth.allowed_branch_ids is not None
             and permission in PERMISSIONS_REQUIRING_BRANCH_TARGET_FOR_EXPLICIT_SCOPE
         ):
             raise PermissionDeniedError(

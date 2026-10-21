@@ -85,6 +85,7 @@ async def test_gym_login_session_logout_http(
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,
@@ -141,6 +142,7 @@ async def test_gym_login_wrong_password(integration_settings, auth_http_repos):
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,
@@ -184,6 +186,7 @@ async def test_gym_login_disabled_account(
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,
@@ -225,6 +228,7 @@ async def test_gym_logout_requires_csrf(
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,
@@ -285,6 +289,7 @@ async def test_gym_login_rate_limit_by_account(
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,
@@ -329,6 +334,7 @@ async def test_gym_login_succeeds_with_revoked_session_cookie(
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,
@@ -380,6 +386,7 @@ async def test_gym_logout_idempotent_when_session_already_revoked(
         mongo_platform_mfa_session_authorization_repository=auth_http_repos["authz"],
         access_memberships_collection=auth_http_repos["memberships"],
         access_tenants_collection=auth_http_repos["tenants"],
+        operational_branches_collection=auth_http_repos["operational_branches"],
     )
     async with mounted_auth_http_client(
         settings=settings,

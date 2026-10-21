@@ -105,6 +105,13 @@ Catálogo cerrado (`GYM_PERMISSION_CATALOG_VERSION`): `branches.read|create|upda
 - `RoleGrantPolicy`: anti-escalada para futura gestión de roles (sin API pública).
 - HTTP: `require_gym_permission(GymPermission)` sobre `require_gym_tenant_context`.
 - Probe de tests: `/gym/internal/security-probe/gym-permission/{permission}` (cookie path gym; no producción).
+- Lectura/listado de sucursales: `list_operation=True` en `require_permission` (sin `branch_id` en query HTTP).
+
+## H3-B.1 — Sucursales gym HTTP
+
+- Endpoints `/api/v1/gym/branches` (POST/GET/GET by id) usan casos de uso `CreateAuthorizedBranch`, `ListAuthorizedBranches`, `GetAuthorizedBranch`.
+- Persistencia: colección operational `branches` vía `OperationalBranchRepository` + `TenantContext` confiable.
+- POST exige `branches.create` + CSRF; GET exige `branches.read` con filtro de alcance en repositorio.
 
 ## H2-C.3 (dependencias)
 
